@@ -682,6 +682,7 @@
       });
 
       let supa = null, cfg = getCfg();
+      let realtimeChannel = null;
       let chart = null, fsChart = null;
       let currentMode = 'today'; // 'today' | 'week' | 'year' | 'overall' (overall only in FS)
       let currentGroups = [];    // array of arrays of timestamps for click-panel
@@ -713,10 +714,48 @@
         buildStrip().catch(()=>{});
       });
 
+      async function teardownRealtimeChannel(){
+        if(!realtimeChannel) return;
+        try{
+          await realtimeChannel.unsubscribe();
+        }catch(err){
+          console.warn('Realtime unsubscribe failed', err);
+        }
+        realtimeChannel = null;
+      }
+
+      function setupRealtimeChannel(){
+        if(!supa || !cfg?.table) return;
+        const channelName = `nb-stream-${cfg.table}-${Math.random().toString(36).slice(2)}`;
+        realtimeChannel = supa
+          .channel(channelName)
+          .on('postgres_changes', { event:'INSERT', schema:'public', table: cfg.table }, payload => handleRealtimePayload('insert', payload))
+          .on('postgres_changes', { event:'DELETE', schema:'public', table: cfg.table }, payload => handleRealtimePayload('delete', payload))
+          .subscribe((status, err) => {
+            if(err) console.error('Realtime subscribe error', err);
+            if(status === 'SUBSCRIBED') setSync('Live', true);
+          });
+      }
+
+      async function handleRealtimePayload(kind, payload){
+        if(!payload) return;
+        try{
+          await refreshValue();
+          await buildStrip();
+          await buildAndRender();
+          setSync('Live', true);
+          toast(kind === 'insert' ? 'Live update received' : 'Remote change detected');
+        }catch(err){
+          console.error('Realtime refresh failed', err);
+        }
+      }
+      window.addEventListener('beforeunload', ()=>{ teardownRealtimeChannel(); });
+
       // Connect & bootstrap
       async function connect(){
         clearErr(); setConnState('pending'); setSync('Connecting…', true);
         cfg = getCfg();
+        await teardownRealtimeChannel();
         if(!cfg.url || !cfg.key){ setConnState('fail'); setSync('Retry', false); return showErr('Please set URL/Key in Connection view.'); }
         supa = window.supabase.createClient(cfg.url, cfg.key);
         try{
@@ -724,6 +763,7 @@
           await buildStrip();     // yesterday/today/tomorrow
           await buildAndRender(); // chart for currentMode
           setConnState('ok'); setSync('Synced', true);
+          setupRealtimeChannel();
         }catch(e){ setConnState('fail'); setSync('Retry', false); showErr(e.message||String(e)); }
       }
 
