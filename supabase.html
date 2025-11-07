@@ -55,6 +55,19 @@
 
     #fs-overlay{background:rgba(0,0,0,.65);}
 
+    .login-overlay{position:fixed;inset:0;background:rgba(4,6,12,.94);display:flex;align-items:center;justify-content:center;z-index:50;padding:1.5rem;}
+    .login-card{width:min(400px,90vw);padding:2rem;display:flex;flex-direction:column;gap:1rem;text-align:center;}
+    .login-card input{border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(2,6,23,.65);padding:.75rem 1rem;font-size:1rem;color:var(--ink-1);}
+    .login-card button{border-radius:14px;background:linear-gradient(135deg,var(--mint-1),var(--mint-2));color:#03201a;font-weight:600;padding:.75rem;border:none;cursor:pointer;}
+    .login-card button:active{transform:translateY(1px);}
+    .login-error{color:#fca5a5;font-size:.85rem;min-height:1em;}
+
+    .keypad{user-select:none;}
+    .keypad button{border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);padding:.9rem 0;font-size:1.25rem;font-weight:600;color:var(--ink-1);transition:background .15s ease,transform .15s ease;}
+    .keypad button:active{transform:scale(.97);background:rgba(255,255,255,.08);}
+    .keypad button[data-action="clear"]{background:rgba(255,255,255,.08);font-size:.95rem;letter-spacing:.08em;}
+    .keypad button[data-action="del"]{background:rgba(239,68,68,.18);}
+
     .main-shell{transition:padding .2s ease, margin .2s ease;}
 
     @media (max-width: 1200px){
@@ -80,6 +93,18 @@
   </style>
 </head>
 <body class="vignette relative">
+  <div id="login-overlay" class="login-overlay">
+    <form id="login-form" class="login-card glass">
+      <div>
+        <p class="text-xs uppercase tracking-[6px] text-emerald-200 mb-1">Ramraj Secure</p>
+        <h2 class="text-2xl font-bold mb-2">Enter Access Code</h2>
+        <p class="text-sm text-slate-300">Reloading the page always requires this quick login.</p>
+      </div>
+      <input id="login-input" type="password" autocomplete="off" placeholder="Access code" />
+      <div id="login-error" class="login-error"></div>
+      <button type="submit">Unlock Console</button>
+    </form>
+  </div>
   <!-- Sidebar -->
   <aside class="glass flex flex-col p-4 gap-3 z-10 w-full max-w-2xl mx-auto lg:mx-0 lg:w-60 relative lg:fixed lg:left-6 lg:top-6 lg:bottom-6">
     <div class="flex flex-col gap-2 px-2 pb-2 border-b border-white/10">
@@ -263,6 +288,21 @@
                      placeholder="Type the desired count">
               <button id="main-save" class="mint-bg px-5 py-2 rounded-xl text-sm font-semibold text-slate-900">Save Number</button>
             </div>
+            <div class="text-xs text-slate-400">Use the keypad below or your hardware keyboard to enter the amount.</div>
+            <div id="amount-keypad" class="keypad grid grid-cols-3 gap-2">
+              <button type="button" data-key="1">1</button>
+              <button type="button" data-key="2">2</button>
+              <button type="button" data-key="3">3</button>
+              <button type="button" data-key="4">4</button>
+              <button type="button" data-key="5">5</button>
+              <button type="button" data-key="6">6</button>
+              <button type="button" data-key="7">7</button>
+              <button type="button" data-key="8">8</button>
+              <button type="button" data-key="9">9</button>
+              <button type="button" data-action="clear">CLR</button>
+              <button type="button" data-key="0">0</button>
+              <button type="button" data-action="del">DEL</button>
+            </div>
             <div class="flex flex-col sm:flex-row gap-3">
               <button id="main-delete-today" class="px-5 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-sm font-semibold text-white">Delete Today's Latest Entry</button>
               <p class="text-xs text-slate-400 sm:flex-1">Deletion is limited to rows recorded today (IST) so past days stay immutable.</p>
@@ -434,6 +474,44 @@
     navs.connection.addEventListener('click', ()=> showTab('connection'));
     showTab('main');
 
+    /* ====================== Login gate ====================== */
+    const ACCESS_CODE = 'ramraj';
+    const loginOverlay = document.getElementById('login-overlay');
+    const loginForm = document.getElementById('login-form');
+    const loginInput = document.getElementById('login-input');
+    const loginError = document.getElementById('login-error');
+
+    function showLogin(message=''){
+      loginOverlay?.classList.remove('hidden');
+      loginError.textContent = message;
+      if(loginInput){
+        loginInput.value = '';
+        setTimeout(()=> loginInput.focus(), 50);
+      }
+    }
+    function hideLogin(){
+      loginOverlay?.classList.add('hidden');
+      document.getElementById('main-input')?.focus();
+    }
+    loginForm?.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const attempt = (loginInput?.value || '').trim().toLowerCase();
+      if(!attempt){
+        loginError.textContent = 'Please enter the access code.';
+        loginInput?.focus();
+        return;
+      }
+      if(attempt !== ACCESS_CODE){
+        loginError.textContent = 'Incorrect code. Try again.';
+        loginInput?.focus();
+        loginInput?.select();
+        return;
+      }
+      loginError.textContent = '';
+      hideLogin();
+    });
+    window.addEventListener('load', ()=> showLogin());
+
     /* ====================== Helpers (IST) ====================== */
     const TZ = 'Asia/Kolkata';
     const F_KEY  = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }); // YYYY-MM-DD
@@ -555,6 +633,23 @@
       const manualInput = document.getElementById('main-input');
       const manualSaveBtn = document.getElementById('main-save');
       const deleteTodayBtn = document.getElementById('main-delete-today');
+      const keypad = document.getElementById('amount-keypad');
+
+      keypad?.addEventListener('click', (event)=>{
+        const btn = event.target.closest('button');
+        if(!btn || !manualInput) return;
+        manualInput.focus();
+        const { key } = btn.dataset;
+        const action = btn.dataset.action;
+        if(action === 'clear'){
+          manualInput.value = '';
+        }else if(action === 'del'){
+          manualInput.value = manualInput.value.slice(0, -1);
+        }else if(key){
+          manualInput.value = (manualInput.value || '') + key;
+        }
+        manualInput.dispatchEvent(new Event('input', { bubbles:true }));
+      });
 
       const dayPanel = document.getElementById('day-panel');
       const dayPanelTitle = document.getElementById('day-panel-title');
