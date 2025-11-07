@@ -54,11 +54,34 @@
     .filter-btn.active{box-shadow: inset 0 0 0 2px rgba(54,227,192,.6);}
 
     #fs-overlay{background:rgba(0,0,0,.65);}
+
+    .main-shell{transition:padding .2s ease, margin .2s ease;}
+
+    @media (max-width: 1200px){
+      body{padding:0 0 2rem;}
+    }
+    @media (max-width: 1024px){
+      aside{
+        position:relative;
+        left:auto; right:auto; top:auto; bottom:auto;
+        width:auto;
+        margin:1.25rem 1rem 0;
+      }
+      .main-shell{
+        padding-left:1rem !important;
+        padding-right:1rem !important;
+      }
+    }
+    @media (max-width: 640px){
+      .responsive-header{flex-direction:column; align-items:flex-start;}
+      #weekly-card canvas{min-height:220px;}
+      #weekly-card .chart-shell{height:clamp(220px,45vh,360px);}
+    }
   </style>
 </head>
 <body class="vignette relative">
   <!-- Sidebar -->
-  <aside class="fixed left-6 top-6 bottom-6 w-60 glass flex flex-col p-4 gap-3 z-10">
+  <aside class="glass flex flex-col p-4 gap-3 z-10 w-full max-w-2xl mx-auto lg:mx-0 lg:w-60 relative lg:fixed lg:left-6 lg:top-6 lg:bottom-6">
     <div class="flex flex-col gap-2 px-2 pb-2 border-b border-white/10">
       <div class="flex items-center gap-2">
         <img src="https://ramrajcotton.in/cdn/shop/files/ramraj_logo_155x@2x.jpg?v=1631932971" alt="Ramraj classic logo" class="h-10 w-auto rounded-lg bg-white/90 p-1 shadow ring-1 ring-white/40">
@@ -90,9 +113,9 @@
   </aside>
 
   <!-- Main area -->
-  <main class="pl-[19rem] pr-6 pt-6 pb-12 relative z-10 max-w-[1400px] mx-auto">
+  <main class="main-shell max-w-[1400px] mx-auto px-4 lg:px-6 lg:pl-[19rem] pt-6 pb-16 lg:pb-12 relative z-10">
     <!-- Top Bar -->
-    <header class="flex items-center gap-6 mb-6">
+    <header class="responsive-header flex flex-wrap items-center gap-5 mb-6 w-full">
       <div class="flex items-center gap-3">
         <img src="https://ramrajcotton.in/cdn/shop/files/ramraj_logo_155x@2x.jpg?v=1631932971" alt="Ramraj badge" class="h-10 w-auto rounded-md bg-white/90 p-1 shadow ring-1 ring-white/30">
         <img src="https://cdn.shopify.com/s/files/1/0094/0716/8559/files/ramraj-cotton-logo_a9185bba-23f7-4ec6-82cf-dcd8f9831af5.jpg?width=200" alt="Ramraj crest" class="h-10 w-auto rounded-md bg-white/90 p-1 shadow ring-1 ring-white/30">
@@ -173,7 +196,7 @@
               </div>
             </div>
 
-            <div class="rounded-lg overflow-hidden relative" style="height:260px">
+            <div class="chart-shell rounded-lg overflow-hidden relative" style="height:clamp(240px,42vh,340px)">
               <canvas id="weeklyChart"></canvas>
             </div>
 
@@ -317,6 +340,13 @@
                      value="Number_column"
                      placeholder="e.g. total">
               <p class="text-xs text-slate-400 mt-1">Case-sensitive if you used capitals.</p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-sm text-slate-300">Timestamp column</label>
+              <input id="tcol-name" class="w-full mt-1 p-2 rounded bg-slate-900 border border-slate-800 focus:outline-none focus:ring focus:ring-blue-600"
+                     value="date"
+                     placeholder="e.g. created_at">
+              <p class="text-xs text-slate-400 mt-1">This is the column we group by for the chart/strips (use your <span class="mono">created_at</span> or trigger column).</p>
             </div>
           </div>
           <div class="flex items-center gap-3 mt-5">
@@ -553,7 +583,7 @@
         key:   localStorage.getItem('sb-num:sb-key')   || document.getElementById('sb-key')?.value || '',
         table: localStorage.getItem('sb-num:tb-name')  || document.getElementById('tb-name')?.value || 'Companies',
         col:   localStorage.getItem('sb-num:col-name') || document.getElementById('col-name')?.value || 'Number_column',
-        tcol:  'date',
+        tcol:  localStorage.getItem('sb-num:tcol-name') || document.getElementById('tcol-name')?.value || 'date',
       });
 
       let supa = null, cfg = getCfg();
@@ -1104,7 +1134,7 @@
     /* ====================== CONNECTION VIEW ====================== */
     (function ConnectionView(){
       const byId = (id)=>document.getElementById(id);
-      const fields = ["sb-url","sb-key","col-name","tb-name"];
+      const fields = ["sb-url","sb-key","col-name","tb-name","tcol-name"];
       let supabaseClient = null;
       let currentRow = null;
 
