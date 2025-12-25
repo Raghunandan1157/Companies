@@ -422,7 +422,7 @@ async def ask_question(
     
     # Answer the question
     # answer = answer_question(extracted_text, question)  # Legacy rule-based
-    answer = ask_llm(extracted_text, question)  # LLM-based
+    answer = await ask_llm(extracted_text, question)  # LLM-based
     logger.info(f"Generated answer: {answer[:100]}...")
     
     return AskResponse(answer=answer, success=True)
@@ -447,7 +447,7 @@ async def ask_question_json(request: AskRequest):
     logger.info(f"Received JSON question: {request.question}")
     
     # answer = answer_question(request.extracted_text, request.question)  # Legacy rule-based
-    answer = ask_llm(request.extracted_text, request.question)  # LLM-based
+    answer = await ask_llm(request.extracted_text, request.question)  # LLM-based
     logger.info(f"Generated answer: {answer[:100]}...")
     
     return AskResponse(answer=answer, success=True)

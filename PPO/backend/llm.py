@@ -4,8 +4,10 @@ Handles intelligent Q&A based on extracted text.
 """
 import os
 import logging
+import asyncio
 import google.generativeai as genai
 from typing import Optional
+from google.api_core import exceptions as google_exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +30,13 @@ def get_model():
     # Note: 'gemini-1.5-flash' should be the standard.
     # If using an older library version or specific region, fallback to 'gemini-pro' might be needed.
     # However, 'gemini-1.5-flash' is the most up-to-date standard.
-    return genai.GenerativeModel('gemini-1.5-flash')
+    return genai.GenerativeModel('gemini-flash-latest')
 
 
-def ask_llm(context_text: str, question: str) -> str:
+async def ask_llm(context_text: str, question: str) -> str:
     """
     Ask a question to the LLM based *only* on the provided context text.
+    Async implementation with retries.
     """
     if not context_text or not context_text.strip():
         return "The image does not contain sufficient text information."
@@ -43,11 +46,10 @@ def ask_llm(context_text: str, question: str) -> str:
         return "[MOCK ANSWER] This is a placeholder answer because GOOGLE_API_KEY is not set. " \
                "The system would normally use Gemini to answer: " + question
 
-    try:
-        model = get_model()
+    model = get_model()
 
-        # System instructions to enforce strict boundaries
-        prompt = f"""
+    # System instructions to enforce strict boundaries
+    prompt = f"""
 You are a helpful assistant that answers questions based STRICTLY on the provided text extracted from an image (OCR).
 Your goal is to be accurate and concise.
 
@@ -69,9 +71,22 @@ INSTRUCTIONS:
 
 ANSWER:
 """
-        response = model.generate_content(prompt)
-        return response.text.strip()
 
-    except Exception as e:
-        logger.error(f"LLM generation failed: {e}")
-        return "Sorry, I encountered an error while processing your request with the AI model."
+    max_retries = 3
+    base_delay = 2
+
+    for attempt in range(max_retries):
+        try:
+            response = await model.generate_content_async(prompt)
+            return response.text.strip()
+
+        except google_exceptions.ResourceExhausted:
+            delay = base_delay * (2 ** attempt)
+            logger.warning(f"Quota exceeded (429). Retrying in {delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+            await asyncio.sleep(delay)
+
+        except Exception as e:
+            logger.error(f"LLM generation failed: {e}")
+            return "Sorry, I encountered an error while processing your request with the AI model."
+
+    return "Sorry, the AI service is currently busy. Please try again later."
