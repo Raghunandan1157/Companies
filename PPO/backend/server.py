@@ -15,11 +15,14 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageOps
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables first
 load_dotenv()
+
+# Import LLM service
+from llm import ask_llm
 
 # Configure logging
 logging.basicConfig(
@@ -118,6 +121,27 @@ def validate_file(file: UploadFile) -> None:
         )
 
 
+def preprocess_image(image: Image.Image) -> Image.Image:
+    """
+    Preprocess image to improve OCR accuracy.
+    - Convert to grayscale
+    - Increase contrast
+    - Sharpen
+    """
+    # 1. Convert to grayscale
+    processed = ImageOps.grayscale(image)
+
+    # 2. Increase contrast (factor 2.0 = double contrast)
+    enhancer = ImageEnhance.Contrast(processed)
+    processed = enhancer.enhance(2.0)
+
+    # 3. Sharpen (factor 2.0 = sharpen)
+    enhancer = ImageEnhance.Sharpness(processed)
+    processed = enhancer.enhance(2.0)
+
+    return processed
+
+
 def extract_text_from_image(image_path: Path) -> tuple[str, dict]:
     """
     Extract text from image using pytesseract OCR.
@@ -132,10 +156,15 @@ def extract_text_from_image(image_path: Path) -> tuple[str, dict]:
     
     try:
         # Open image
-        image = Image.open(image_path)
+        original_image = Image.open(image_path)
+
+        # Preprocess image
+        image = preprocess_image(original_image)
         
         # Extract text using pytesseract
-        extracted_text = pytesseract.image_to_string(image)
+        # Preserve layout to help with tables
+        custom_config = r'--psm 6'  # Assume a single uniform block of text (good for tables)
+        extracted_text = pytesseract.image_to_string(image, config=custom_config)
         
         # Get structured data (bounding boxes, confidence)
         data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
@@ -392,7 +421,8 @@ async def ask_question(
         )
     
     # Answer the question
-    answer = answer_question(extracted_text, question)
+    # answer = answer_question(extracted_text, question)  # Legacy rule-based
+    answer = ask_llm(extracted_text, question)  # LLM-based
     logger.info(f"Generated answer: {answer[:100]}...")
     
     return AskResponse(answer=answer, success=True)
@@ -416,7 +446,8 @@ async def ask_question_json(request: AskRequest):
     
     logger.info(f"Received JSON question: {request.question}")
     
-    answer = answer_question(request.extracted_text, request.question)
+    # answer = answer_question(request.extracted_text, request.question)  # Legacy rule-based
+    answer = ask_llm(request.extracted_text, request.question)  # LLM-based
     logger.info(f"Generated answer: {answer[:100]}...")
     
     return AskResponse(answer=answer, success=True)
