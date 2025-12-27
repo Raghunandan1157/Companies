@@ -6,12 +6,12 @@ class AppTheme {
   static const Color surface = Color(0xFF121212);
   static const Color surfaceGlass = Color(0x1AFFFFFF); // 10% white
 
-  // Neon Colors
-  static const Color neonCyan = Color(0xFF00E5FF);
-  static const Color neonGreen = Color(0xFF00E676);
-  static const Color neonPurple = Color(0xFFD500F9);
-  static const Color neonAmber = Color(0xFFFFC400);
-  static const Color neonRed = Color(0xFFFF1744);
+  // Neon Colors - Adjusted for NLPL (Teal/Green focus)
+  static const Color neonCyan = Color(0xFF26A69A); // Teal-ish
+  static const Color neonGreen = Color(0xFF76FF03); // Brighter Green
+  static const Color neonPurple = Color(0xFFAB47BC); // Softer Purple
+  static const Color neonAmber = Color(0xFFFFD740);
+  static const Color neonRed = Color(0xFFFF5252);
 
   static const Color textPrimary = Color(0xFFEEEEEE);
   static const Color textSecondary = Color(0xFFAAAAAA);

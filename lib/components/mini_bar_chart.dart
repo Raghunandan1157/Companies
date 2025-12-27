@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class MiniBarChart extends StatelessWidget {
+class MiniBarChart extends StatefulWidget {
   final List<double> values;
   final List<String> labels;
   final Color barColor;
@@ -15,17 +15,48 @@ class MiniBarChart extends StatelessWidget {
   });
 
   @override
+  State<MiniBarChart> createState() => _MiniBarChartState();
+}
+
+class _MiniBarChartState extends State<MiniBarChart> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000)
+    )..forward();
+
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      height: height,
+      height: widget.height,
       padding: const EdgeInsets.all(8),
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: _BarChartPainter(
-          values: values,
-          labels: labels,
-          barColor: barColor,
-        ),
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          return CustomPaint(
+            size: Size.infinite,
+            painter: _BarChartPainter(
+              values: widget.values,
+              labels: widget.labels,
+              barColor: widget.barColor,
+              progress: _animation.value,
+            ),
+          );
+        }
       ),
     );
   }
@@ -35,11 +66,13 @@ class _BarChartPainter extends CustomPainter {
   final List<double> values;
   final List<String> labels;
   final Color barColor;
+  final double progress;
 
   _BarChartPainter({
     required this.values,
     required this.labels,
     required this.barColor,
+    required this.progress,
   });
 
   @override
@@ -59,7 +92,8 @@ class _BarChartPainter extends CustomPainter {
 
     for (int i = 0; i < values.length; i++) {
       final val = values[i];
-      final barHeight = (val / maxValue) * (size.height - 20); // Reserve space for text
+      final fullBarHeight = (val / maxValue) * (size.height - 20); // Reserve space for text
+      final barHeight = fullBarHeight * progress; // Animate height
 
       final x = i * (size.width / values.length) + (size.width / values.length - barWidth) / 2;
       final y = size.height - 20 - barHeight;
@@ -105,5 +139,6 @@ class _BarChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _BarChartPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _BarChartPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.values != values;
 }

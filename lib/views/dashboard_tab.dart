@@ -3,6 +3,7 @@ import 'package:corp_pulse/models/data_models.dart';
 import 'package:corp_pulse/services/mock_data_service.dart';
 import 'package:corp_pulse/components/neon_card.dart';
 import 'package:corp_pulse/components/ring_gauge.dart';
+import 'package:corp_pulse/components/ticker_widget.dart';
 import 'package:corp_pulse/theme/app_theme.dart';
 
 class DashboardTab extends StatelessWidget {
@@ -33,29 +34,42 @@ class DashboardTab extends StatelessWidget {
       primaryRow = rows.firstWhere((r) => r.regionName != 'Grand Total', orElse: () => rows.first);
     }
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 200.0,
-          floating: false,
-          pinned: true,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: FlexibleSpaceBar(
-            title: Text(
-              '${session.role == Role.ceo ? "Global" : primaryRow.regionName} Dashboard',
-              style: const TextStyle(
-                shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: _buildQuickActionFAB(context),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 200.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                '${session.role == Role.ceo ? "Global" : primaryRow.regionName} Dashboard',
+                style: const TextStyle(
+                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                ),
               ),
+              background: _buildHeaderBackground(),
             ),
-            background: _buildHeaderBackground(),
           ),
-        ),
 
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              // Performance Section
+          SliverToBoxAdapter(
+            child: TickerWidget(
+              messages: [
+                "🚀 Latest: ${primaryRow.regionName} crossed 90% collection!",
+                "📈 Growth: NPA cases reduced by 15% this month.",
+                "🔥 Alert: Telangana region needs attention on 1-30 Bucket.",
+              ],
+            ),
+          ),
+
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Performance Section
               Center(
                 child: NeonCard(
                   glowColor: primaryRow.performance == "Above Average" ? AppTheme.neonGreen : AppTheme.neonRed,
@@ -111,6 +125,40 @@ class DashboardTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildQuickActionFAB(BuildContext context) {
+    return FloatingActionButton.extended(
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) => Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface.withOpacity(0.9),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.neonCyan.withOpacity(0.3)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Quick Actions", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  ListTile(leading: const Icon(Icons.download, color: AppTheme.neonCyan), title: const Text("Export Report", style: TextStyle(color: Colors.white)), onTap: () => Navigator.pop(context)),
+                  ListTile(leading: const Icon(Icons.add_chart, color: AppTheme.neonGreen), title: const Text("New Analysis", style: TextStyle(color: Colors.white)), onTap: () => Navigator.pop(context)),
+                  ListTile(leading: const Icon(Icons.share, color: AppTheme.neonPurple), title: const Text("Share Dashboard", style: TextStyle(color: Colors.white)), onTap: () => Navigator.pop(context)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      backgroundColor: AppTheme.neonCyan,
+      label: const Text("Actions", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      icon: const Icon(Icons.flash_on, color: Colors.black),
     );
   }
 

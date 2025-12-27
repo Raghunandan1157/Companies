@@ -4,19 +4,31 @@ import 'package:corp_pulse/services/mock_data_service.dart';
 import 'package:corp_pulse/theme/app_theme.dart';
 import 'package:corp_pulse/components/percent_badge.dart';
 
-class RegionsTab extends StatelessWidget {
+class RegionsTab extends StatefulWidget {
   final UserSession session;
 
   const RegionsTab({super.key, required this.session});
 
   @override
+  State<RegionsTab> createState() => _RegionsTabState();
+}
+
+class _RegionsTabState extends State<RegionsTab> {
+  String _searchQuery = "";
+
+  @override
   Widget build(BuildContext context) {
-    final rows = MockDataService().getForRole(session.role, session.assignedRegion);
+    final rows = MockDataService().getForRole(widget.session.role, widget.session.assignedRegion);
+
+    // Filter rows based on search
+    final filteredRows = rows.where((row) =>
+      row.regionName.toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text("Regional Reports"),
+        title: _buildSearchBar(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -40,7 +52,7 @@ class RegionsTab extends StatelessWidget {
               DataColumn(label: Text('NPA Cases')),
               DataColumn(label: Text('Rank')),
             ],
-            rows: rows.map((row) {
+            rows: filteredRows.map((row) {
               return DataRow(
                 onSelectChanged: (selected) {
                   if (selected == true) {
@@ -62,6 +74,32 @@ class RegionsTab extends StatelessWidget {
             }).toList(),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: TextField(
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          hintText: "Search Regions...",
+          hintStyle: TextStyle(color: Colors.white38),
+          prefixIcon: Icon(Icons.search, color: Colors.white54, size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.only(top: 0),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }

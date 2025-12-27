@@ -77,16 +77,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.analytics_outlined,
-                      size: 100,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 150,
+                      height: 150,
                     ),
                   ),
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'CorpPulse',
+                  'NLPL',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     shadows: [
                       Shadow(
