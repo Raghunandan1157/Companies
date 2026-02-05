@@ -1,830 +1,1510 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Store Daily Report — 2/4/2026</title>
+  <title>Store Daily Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
-    /* ── Reset & base ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:      #050d1a;
-      --surface: rgba(15, 23, 42, 0.6);
-      --surface-solid: #0f172a;
-      --border:  rgba(56, 189, 248, 0.08);
-      --border-hover: rgba(56, 189, 248, 0.25);
-      --text:    #f1f5f9;
-      --muted:   #94a3b8;
-      --accent:  #38bdf8;
-      --green:   #22c55e;
-      --yellow:  #facc15;
-      --red:     #ef4444;
-      --purple:  #a78bfa;
-      --orange:  #fb923c;
-      --pink:    #f472b6;
-      --glass:   rgba(15, 23, 42, 0.45);
-      --glass-border: rgba(255, 255, 255, 0.06);
+
+    /* ── Theme tokens ────────────────────────────── */
+    [data-theme="dark"] {
+      --bg:         #0b1120;
+      --bg-2:       #111827;
+      --surface:    #1a2332;
+      --surface-2:  #1f2b3d;
+      --border:     #2a3548;
+      --text:       #eef2f7;
+      --text-2:     #c5cdd8;
+      --muted:      #7a8599;
+      --shadow:     rgba(0,0,0,0.3);
+      --shadow-lg:  rgba(0,0,0,0.5);
+      --chart-grid: rgba(255,255,255,0.05);
+      --chart-text: #7a8599;
+      --tooltip-bg: #1a2332;
+      --toggle-bg:  #2a3548;
+      --toggle-dot: #eef2f7;
+      --progress-bg:#1f2b3d;
+      --modal-bg:   rgba(0,0,0,0.6);
     }
+    [data-theme="light"] {
+      --bg:         #f3f4f8;
+      --bg-2:       #ebedf2;
+      --surface:    #ffffff;
+      --surface-2:  #f8f9fb;
+      --border:     #e2e5eb;
+      --text:       #111827;
+      --text-2:     #4b5563;
+      --muted:      #8892a2;
+      --shadow:     rgba(0,0,0,0.05);
+      --shadow-lg:  rgba(0,0,0,0.1);
+      --chart-grid: rgba(0,0,0,0.06);
+      --chart-text: #8892a2;
+      --tooltip-bg: #ffffff;
+      --toggle-bg:  #e2e5eb;
+      --toggle-dot: #ffffff;
+      --progress-bg:#ebedf2;
+      --modal-bg:   rgba(0,0,0,0.4);
+    }
+
+    :root {
+      --blue:    #3b82f6;
+      --cyan:    #06b6d4;
+      --green:   #10b981;
+      --emerald: #34d399;
+      --yellow:  #f59e0b;
+      --orange:  #f97316;
+      --red:     #ef4444;
+      --pink:    #ec4899;
+      --purple:  #8b5cf6;
+      --indigo:  #6366f1;
+    }
+
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 24px;
-      overflow-x: hidden;
+      transition: background 0.35s ease, color 0.35s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────── */
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 24px 40px;
+    }
+
+    /* ── Navbar ───────────────────────────────────── */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 1rem;
+    }
+    .navbar-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .navbar-title span { color: var(--muted); font-weight: 400; font-size: 0.85rem; margin-left: 8px; }
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; font-weight: 600; color: var(--green);
+      background: rgba(16, 185, 129, 0.1);
+      padding: 5px 12px; border-radius: 100px;
+    }
+    .live-badge .pulse {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+    }
+
+    /* ── Theme toggle ────────────────────────────── */
+    .theme-toggle {
+      width: 52px; height: 28px;
+      background: var(--toggle-bg);
+      border-radius: 100px; border: none; cursor: pointer;
+      position: relative;
+      transition: background 0.3s ease;
+    }
+    .theme-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 22px; height: 22px;
+      background: var(--toggle-dot);
+      border-radius: 50%;
+      transition: transform 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    [data-theme="light"] .theme-toggle::after { transform: translateX(24px); }
+    .theme-toggle .icon {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      font-size: 0.8rem; line-height: 1;
+    }
+    .theme-toggle .icon-moon { left: 7px; }
+    .theme-toggle .icon-sun  { right: 7px; }
+    [data-theme="dark"] .theme-toggle .icon-sun { opacity: 0.35; }
+    [data-theme="light"] .theme-toggle .icon-moon { opacity: 0.35; }
+
+    /* ── Page header ─────────────────────────────── */
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      padding: 20px 0 24px;
+    }
+    .page-header h1 {
+      font-size: 1.6rem; font-weight: 800; line-height: 1.2;
+      color: var(--text);
+    }
+    .page-header .date-info {
+      font-size: 0.82rem; color: var(--muted); margin-top: 4px; font-weight: 500;
+    }
+    .header-meta {
+      display: flex; gap: 20px; font-size: 0.8rem; color: var(--muted);
+    }
+    .header-meta div {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    }
+    .header-meta .val { color: var(--text); font-weight: 600; font-size: 0.9rem; }
+
+    /* ── Section titles ──────────────────────────── */
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin: 28px 0 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* ── KPI row ─────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--shadow);
+    }
+    .kpi-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .kpi-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .kpi-label {
+      font-size: 0.72rem; color: var(--muted); font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 1.45rem; font-weight: 800; color: var(--text);
+      line-height: 1.1;
+    }
+    .kpi-desc {
+      font-size: 0.68rem; color: var(--muted); margin-top: 4px; font-weight: 400;
+    }
+
+    .kpi-icon.sale    { background: rgba(59,130,246,0.12); color: var(--blue);   }
+    .kpi-icon.bills   { background: rgba(16,185,129,0.12); color: var(--green);  }
+    .kpi-icon.qty     { background: rgba(139,92,246,0.12);  color: var(--purple); }
+    .kpi-icon.atv     { background: rgba(249,115,22,0.12);  color: var(--orange); }
+    .kpi-icon.upt     { background: rgba(236,72,153,0.12);  color: var(--pink);   }
+    .kpi-icon.asp     { background: rgba(245,158,11,0.12);  color: var(--yellow); }
+
+    /* ── Progress card (Target) ──────────────────── */
+    .target-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+    }
+    .target-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 14px;
+    }
+    .target-header h3 {
+      font-size: 0.9rem; font-weight: 700; color: var(--text);
+    }
+    .target-header .pct {
+      font-size: 1.4rem; font-weight: 800;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: var(--progress-bg);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+    }
+    .target-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.78rem; color: var(--muted);
+    }
+    .target-row strong { color: var(--text); font-weight: 600; }
+
+    /* ── Chart cards ─────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      transition: box-shadow 0.2s;
+    }
+    .chart-card:hover {
+      box-shadow: 0 6px 20px var(--shadow);
+    }
+    .chart-card.wide { grid-column: span 2; }
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 16px;
+    }
+    .chart-header h3 {
+      font-size: 0.9rem; font-weight: 700; color: var(--text);
+    }
+    .chart-header .hint {
+      font-size: 0.7rem; color: var(--muted); font-weight: 500;
+    }
+    .chart-body {
       position: relative;
     }
+    .chart-body canvas { width: 100% !important; }
 
-    /* ── Animated mesh gradient background ─────────── */
-    body::before {
-      content: '';
+    /* ── Summary table ───────────────────────────── */
+    .summary-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .summary-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-table td {
+      padding: 10px 12px;
+      color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .summary-table .num { text-align: right; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+
+    /* ── Footer ──────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 28px 0 8px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    /* ── Utilities ────────────────────────────────── */
+    .color-blue   { color: var(--blue);   }
+    .color-green  { color: var(--green);  }
+    .color-yellow { color: var(--yellow); }
+    .color-orange { color: var(--orange); }
+    .color-red    { color: var(--red);    }
+    .color-purple { color: var(--purple); }
+    .color-pink   { color: var(--pink);   }
+
+    /* ── FAB (Floating Action Button) ────────────── */
+    .fab {
       position: fixed;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background:
-        radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(244, 114, 182, 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
-      animation: meshMove 20s ease-in-out infinite;
-      z-index: 0;
-      pointer-events: none;
+      bottom: 28px;
+      right: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff;
+      font-size: 1.6rem;
+      font-weight: 300;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 100;
     }
-
-    @keyframes meshMove {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(2%, -3%) rotate(1deg); }
-      50% { transform: translate(-1%, 2%) rotate(-0.5deg); }
-      75% { transform: translate(3%, 1%) rotate(0.5deg); }
+    .fab:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 28px rgba(59,130,246,0.5);
     }
+    .fab:active { transform: scale(0.96); }
 
-    /* ── Dot pattern overlay ──────────────────────── */
-    body::after {
-      content: '';
+    /* ── Modal ────────────────────────────────────── */
+    .modal-overlay {
       position: fixed;
       inset: 0;
-      background-image: radial-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px);
-      background-size: 24px 24px;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    .page-wrap {
-      position: relative;
-      z-index: 1;
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-
-    /* ── Header ───────────────────────────────────── */
-    header {
-      text-align: center;
-      margin-bottom: 36px;
-      animation: fadeSlideDown 0.6s ease-out both;
-    }
-
-    header h1 {
-      font-size: 2.2rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #f1f5f9, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    header h1 span {
-      background: linear-gradient(135deg, #38bdf8, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .sub-info {
+      background: var(--modal-bg);
+      backdrop-filter: blur(4px);
       display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    .sub-info strong { color: var(--text); }
-
-    /* ── Status ribbon ────────────────────────────── */
-    .status-bar {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      margin-bottom: 28px;
-      animation: fadeSlideDown 0.6s ease-out 0.1s both;
-    }
-
-    .status-pill {
-      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: var(--glass);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      border-radius: 100px;
-      padding: 8px 18px;
-      font-size: 0.78rem;
-      font-weight: 500;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      width: 90%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.25s ease;
+    }
+    .modal-overlay.active .modal {
+      transform: translateY(0) scale(1);
+    }
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-group.full { grid-column: span 2; }
+    .form-group label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
       color: var(--muted);
     }
-
-    .status-pill .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-      animation: pulse 2s ease-in-out infinite;
+    .form-group input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      border-color: var(--blue);
+    }
+    .form-group input::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .btn {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: none;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
-    .status-pill strong { color: var(--text); font-weight: 600; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    /* ── Grid layout ──────────────────────────────── */
-    .grid {
-      display: grid;
-      gap: 20px;
-    }
-
-    .grid-kpi { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
-    .grid-charts { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
-
-    /* ── KPI cards ────────────────────────────────── */
-    .kpi {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 22px 20px;
+    /* ── Toast ────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 300;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
     }
-
-    .kpi::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      border-radius: 16px 16px 0 0;
-      opacity: 0.8;
-    }
-
-    .kpi::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      filter: blur(40px);
-      pointer-events: none;
-    }
-
-    .kpi:hover {
-      transform: translateY(-4px) scale(1.02);
-      border-color: var(--border-hover);
-      box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(56, 189, 248, 0.1);
-    }
-
-    .kpi:hover::after { opacity: 0.15; }
-
-    .kpi-icon {
-      font-size: 1.5rem;
-      margin-bottom: 4px;
-      filter: grayscale(0.2);
-    }
-
-    .kpi-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .kpi-value {
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      line-height: 1.1;
-    }
-
-    .kpi-sub {
-      font-size: 0.72rem;
-      color: var(--muted);
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 0.82rem;
       font-weight: 500;
-    }
-
-    /* KPI top-bar gradient accents */
-    .kpi--sale::before   { background: linear-gradient(90deg, var(--accent), #0ea5e9); }
-    .kpi--sale::after    { background: var(--accent); }
-    .kpi--bills::before  { background: linear-gradient(90deg, var(--green), #16a34a); }
-    .kpi--bills::after   { background: var(--green); }
-    .kpi--qty::before    { background: linear-gradient(90deg, var(--purple), #8b5cf6); }
-    .kpi--qty::after     { background: var(--purple); }
-    .kpi--atv::before    { background: linear-gradient(90deg, var(--orange), #ea580c); }
-    .kpi--atv::after     { background: var(--orange); }
-    .kpi--upt::before    { background: linear-gradient(90deg, var(--pink), #e11d48); }
-    .kpi--upt::after     { background: var(--pink); }
-    .kpi--asp::before    { background: linear-gradient(90deg, var(--yellow), #eab308); }
-    .kpi--asp::after     { background: var(--yellow); }
-
-    /* staggered entrance animation for KPI cards */
-    .kpi:nth-child(1) { animation: fadeSlideUp 0.5s ease-out 0.15s both; }
-    .kpi:nth-child(2) { animation: fadeSlideUp 0.5s ease-out 0.25s both; }
-    .kpi:nth-child(3) { animation: fadeSlideUp 0.5s ease-out 0.35s both; }
-    .kpi:nth-child(4) { animation: fadeSlideUp 0.5s ease-out 0.45s both; }
-    .kpi:nth-child(5) { animation: fadeSlideUp 0.5s ease-out 0.55s both; }
-    .kpi:nth-child(6) { animation: fadeSlideUp 0.5s ease-out 0.65s both; }
-
-    /* ── Chart panels ─────────────────────────────── */
-    .panel {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 28px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .panel::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .panel:hover {
-      border-color: var(--border-hover);
-      box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(56, 189, 248, 0.08);
-    }
-
-    .panel:hover::before { opacity: 0.6; }
-
-    .panel h2 {
-      font-size: 0.78rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
+      color: var(--text);
+      box-shadow: 0 4px 16px var(--shadow-lg);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      min-width: 240px;
     }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(40px); } }
 
-    .panel h2::before {
-      content: '';
-      width: 4px;
-      height: 16px;
-      border-radius: 4px;
-      background: var(--accent);
-    }
-
-    .chart-wrap {
-      position: relative;
-      width: 100%;
-    }
-
-    .chart-wrap canvas { width: 100% !important; }
-
-    /* staggered entrance animation for panels */
-    .panel:nth-child(1) { animation: fadeSlideUp 0.5s ease-out 0.3s both; }
-    .panel:nth-child(2) { animation: fadeSlideUp 0.5s ease-out 0.4s both; }
-    .panel:nth-child(3) { animation: fadeSlideUp 0.5s ease-out 0.5s both; }
-    .panel:nth-child(4) { animation: fadeSlideUp 0.5s ease-out 0.6s both; }
-
-    /* ── Gauge centre text ────────────────────────── */
-    .gauge-container {
-      position: relative;
-      display: flex;
-      justify-content: center;
-    }
-
-    .gauge-center {
-      position: absolute;
-      top: 54%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+    /* ── Empty state ─────────────────────────────── */
+    .empty-state {
       text-align: center;
+      padding: 60px 20px;
     }
-
-    .gauge-center .pct {
-      font-size: 2.6rem;
-      font-weight: 900;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.4;
     }
-
-    .gauge-center .label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    /* ── Footer ───────────────────────────────────── */
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      padding: 20px;
-      color: var(--muted);
-      font-size: 0.72rem;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      animation: fadeSlideUp 0.5s ease-out 0.8s both;
-    }
-
-    footer span {
-      background: linear-gradient(90deg, var(--accent), var(--purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .empty-state h3 {
+      font-size: 1.1rem;
       font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .empty-state p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      max-width: 320px;
+      margin: 0 auto;
     }
 
-    /* ── Animations ───────────────────────────────── */
-    @keyframes fadeSlideUp {
-      from {
-        opacity: 0;
-        transform: translateY(24px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* ── Loading skeleton ────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-kpi { height: 120px; }
+    .skeleton-chart { height: 200px; }
+
+    /* ── Responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      .app { padding: 14px 16px 32px; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .header-meta { align-self: flex-start; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.wide { grid-column: span 1; }
+      .navbar-title span { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: span 1; }
+      .fab { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.4rem; }
+    }
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .kpi { padding: 14px; }
+      .kpi-value { font-size: 1.2rem; }
+      .page-header h1 { font-size: 1.3rem; }
     }
 
-    @keyframes fadeSlideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-16px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-    @keyframes countUp {
-      from { opacity: 0; filter: blur(4px); }
-      to   { opacity: 1; filter: blur(0); }
-    }
-
-    /* ── Scrollbar styling ────────────────────────── */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(56, 189, 248, 0.2);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.35); }
-
-    /* ── Responsive ───────────────────────────────── */
-    @media (max-width: 600px) {
-      body { padding: 14px; }
-      .grid-kpi { grid-template-columns: repeat(2, 1fr); }
-      .grid-charts { grid-template-columns: 1fr; }
-      header h1 { font-size: 1.5rem; }
-      .sub-info { gap: 16px; font-size: 0.78rem; }
-      .status-bar { flex-wrap: wrap; gap: 10px; }
-      .kpi-value { font-size: 1.4rem; }
-    }
+    .fade-in { animation: fadeIn 0.4s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-<div class="page-wrap">
+<div class="app">
 
-<!-- ═══════════════ HEADER ═══════════════ -->
-<header>
-  <h1>Daily Store <span>Report</span></h1>
-  <div class="sub-info">
-    <span>Date: <strong>2 / 4 / 2026</strong></span>
-    <span>Open: <strong>9:30 AM</strong></span>
-    <span>Close: <strong>9:30 PM</strong></span>
-  </div>
-</header>
+  <!-- NAVBAR -->
+  <nav class="navbar fade-in">
+    <div class="navbar-brand">
+      <div class="navbar-logo">SR</div>
+      <div class="navbar-title">Store Report <span>Daily Performance</span></div>
+    </div>
+    <div class="navbar-actions">
+      <div class="live-badge"><div class="pulse"></div> Store Open</div>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon icon-moon">&#127769;</span>
+        <span class="icon icon-sun">&#9728;&#65039;</span>
+      </button>
+    </div>
+  </nav>
 
-<!-- ═══════════════ STATUS BAR ═══════════════ -->
-<div class="status-bar">
-  <div class="status-pill">
-    <div class="dot"></div>
-    <span>Store <strong>Open</strong></span>
+  <!-- PAGE HEADER -->
+  <div class="page-header fade-in" style="animation-delay:0.05s">
+    <div>
+      <h1 id="pageTitle">Daily Performance</h1>
+      <div class="date-info" id="dateInfo">Loading...</div>
+    </div>
+    <div class="header-meta">
+      <div><span>Clock</span><span class="val" id="liveClock">--:--</span></div>
+      <div><span>Achievement</span><span class="val color-yellow" id="headerAchievement">--</span></div>
+    </div>
   </div>
-  <div class="status-pill">
-    <span id="liveClock"></span>
+
+  <!-- MAIN CONTENT (dynamically rendered) -->
+  <div id="dashboardContent"></div>
+
+  <!-- FOOTER -->
+  <div class="footer fade-in" style="animation-delay:0.5s" id="footerText">
+    Loading data...
   </div>
-  <div class="status-pill">
-    <span>Achievement: <strong style="color: var(--yellow)">11%</strong></span>
+
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab" id="fabAdd" title="Add Daily Report">+</button>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Daily Report</div>
+    <form id="reportForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="fDate">Report Date</label>
+          <input type="date" id="fDate" required />
+        </div>
+        <div class="form-group">
+          <label for="fSale">Total Sale</label>
+          <input type="number" id="fSale" placeholder="e.g. 38879" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label for="fBills">Bills</label>
+          <input type="number" id="fBills" placeholder="e.g. 15" required />
+        </div>
+        <div class="form-group">
+          <label for="fQty">Qty Sold</label>
+          <input type="number" id="fQty" placeholder="e.g. 57" required />
+        </div>
+        <div class="form-group">
+          <label for="fTarget">Monthly Target</label>
+          <input type="number" id="fTarget" placeholder="e.g. 1800000" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label for="fATV">ATV</label>
+          <input type="number" id="fATV" placeholder="auto-calc or manual" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label for="fUPT">UPT</label>
+          <input type="number" id="fUPT" placeholder="auto-calc or manual" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label for="fASP">ASP</label>
+          <input type="number" id="fASP" placeholder="auto-calc or manual" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <span style="font-size:0.7rem; color:var(--muted); padding-top: 4px;">Leave blank to auto-calculate</span>
+        </div>
+        <div class="form-group">
+          <label for="fOpen">Opening Time</label>
+          <input type="time" id="fOpen" value="09:30" />
+        </div>
+        <div class="form-group">
+          <label for="fClose">Closing Time</label>
+          <input type="time" id="fClose" value="21:30" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btnSave">Save Report</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- ═══════════════ KPI CARDS ═══════════════ -->
-<section class="grid grid-kpi" style="margin-bottom:28px">
-  <div class="kpi kpi--sale">
-    <div class="kpi-icon">&#128176;</div>
-    <span class="kpi-label">Today's Sale</span>
-    <span class="kpi-value" style="color:var(--accent)" data-target="38879" data-prefix="&#8377;">&#8377;0</span>
-  </div>
-  <div class="kpi kpi--bills">
-    <div class="kpi-icon">&#128196;</div>
-    <span class="kpi-label">Bills</span>
-    <span class="kpi-value" style="color:var(--green)" data-target="15">0</span>
-  </div>
-  <div class="kpi kpi--qty">
-    <div class="kpi-icon">&#128230;</div>
-    <span class="kpi-label">Quantity Sold</span>
-    <span class="kpi-value" style="color:var(--purple)" data-target="57">0</span>
-  </div>
-  <div class="kpi kpi--atv">
-    <div class="kpi-icon">&#128178;</div>
-    <span class="kpi-label">ATV</span>
-    <span class="kpi-value" style="color:var(--orange)" data-target="2592" data-prefix="&#8377;">&#8377;0</span>
-    <span class="kpi-sub">Avg Transaction Value</span>
-  </div>
-  <div class="kpi kpi--upt">
-    <div class="kpi-icon">&#128722;</div>
-    <span class="kpi-label">UPT</span>
-    <span class="kpi-value" style="color:var(--pink)" data-target="3.80" data-decimals="2">0</span>
-    <span class="kpi-sub">Units Per Transaction</span>
-  </div>
-  <div class="kpi kpi--asp">
-    <div class="kpi-icon">&#127991;</div>
-    <span class="kpi-label">ASP</span>
-    <span class="kpi-value" style="color:var(--yellow)" data-target="682" data-prefix="&#8377;">&#8377;0</span>
-    <span class="kpi-sub">Avg Selling Price</span>
-  </div>
-</section>
-
-<!-- ═══════════════ CHARTS ═══════════════ -->
-<section class="grid grid-charts">
-
-  <!-- 1 ── Target vs Achievement gauge ────────── -->
-  <div class="panel">
-    <h2>Target vs Achievement</h2>
-    <div class="gauge-container">
-      <div class="chart-wrap" style="max-width:300px">
-        <canvas id="gaugeChart"></canvas>
-      </div>
-      <div class="gauge-center">
-        <div class="pct">11%</div>
-        <div class="label">of &#8377;18,00,000</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2 ── Sales comparison bar ───────────────── -->
-  <div class="panel">
-    <h2>Sales Comparison</h2>
-    <div class="chart-wrap">
-      <canvas id="salesBar"></canvas>
-    </div>
-  </div>
-
-  <!-- 3 ── MTD breakdown horizontal bar ───────── -->
-  <div class="panel">
-    <h2>MTD Metrics</h2>
-    <div class="chart-wrap">
-      <canvas id="mtdBar"></canvas>
-    </div>
-  </div>
-
-  <!-- 4 ── Per-transaction breakdown (doughnut) ─ -->
-  <div class="panel">
-    <h2>Per-Transaction Breakdown</h2>
-    <div class="chart-wrap" style="max-width:320px;margin:0 auto">
-      <canvas id="txnDoughnut"></canvas>
-    </div>
-  </div>
-
-</section>
-
-<!-- ═══════════════ FOOTER ═══════════════ -->
-<footer>
-  Powered by <span>Visual Analytics</span> &middot; Auto-generated store performance report
-</footer>
-
-</div><!-- /page-wrap -->
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
-/* ── helpers ─────────────────────────────────── */
-const fmt = n => n.toLocaleString('en-IN');
-Chart.defaults.color = '#94a3b8';
-Chart.defaults.borderColor = 'rgba(51, 65, 85, 0.5)';
-Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+/* =================================================================
+   SUPABASE INIT
+   ================================================================= */
+const SUPABASE_URL = 'https://zovnmmdfthpbubrorsgh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvdm5tbWRmdGhwYnVicm9yc2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1NzE3ODgsImV4cCI6MjA3NzE0Nzc4OH0.92BH2sjUOgkw6iSRj1_4gt0p3eThg3QT4VK-Q4EdmBE';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ── Live clock ──────────────────────────────── */
-function updateClock() {
+/* =================================================================
+   APP STATE
+   ================================================================= */
+const state = {
+  reports: [],     // all reports for the current month
+  mtd: null,       // computed MTD aggregates
+  today: null,     // latest report (today's if exists)
+  loading: true,
+};
+
+/* =================================================================
+   THEME
+   ================================================================= */
+const html = document.documentElement;
+const saved = localStorage.getItem('theme');
+if (saved) html.dataset.theme = saved;
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('theme', next);
+  updateChartsTheme();
+});
+
+/* =================================================================
+   HELPERS
+   ================================================================= */
+const fmt = n => Number(n).toLocaleString('en-IN');
+const fmtR = n => '\u20B9' + fmt(Math.round(n));
+function themeColor(prop) {
+  return getComputedStyle(html).getPropertyValue(prop).trim();
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hr = parseInt(h);
+  const ampm = hr >= 12 ? 'PM' : 'AM';
+  const h12 = hr % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
+function getMonthRange() {
   const now = new Date();
-  const h = now.getHours();
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  document.getElementById('liveClock').innerHTML =
-    `<strong>${h12}:${m}:${s} ${ampm}</strong>`;
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const start = new Date(y, m, 1).toISOString().split('T')[0];
+  const end = new Date(y, m + 1, 0).toISOString().split('T')[0];
+  return { start, end, year: y, month: m, daysInMonth: new Date(y, m + 1, 0).getDate() };
 }
-updateClock();
-setInterval(updateClock, 1000);
 
-/* ── Animated counters ───────────────────────── */
-function animateCounters() {
-  document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
-    const target = parseFloat(el.dataset.target);
-    const prefix = el.dataset.prefix || '';
-    const decimals = parseInt(el.dataset.decimals) || 0;
-    const duration = 1200;
-    const start = performance.now();
+/* =================================================================
+   LIVE CLOCK
+   ================================================================= */
+function tick() {
+  const d = new Date();
+  const h = d.getHours() % 12 || 12;
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+  document.getElementById('liveClock').textContent = `${h}:${m} ${ampm}`;
+}
+tick();
+setInterval(tick, 10000);
 
-    function tick(now) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = target * eased;
+/* =================================================================
+   TOAST NOTIFICATIONS
+   ================================================================= */
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icon = type === 'success' ? '\u2713' : '\u2717';
+  toast.innerHTML = `<span>${icon}</span> ${message}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
 
-      if (decimals > 0) {
-        el.textContent = prefix + current.toFixed(decimals);
-      } else {
-        el.textContent = prefix + Math.round(current).toLocaleString('en-IN');
-      }
+/* =================================================================
+   DATA LOADING
+   ================================================================= */
+async function loadAllData() {
+  state.loading = true;
+  renderLoading();
 
-      if (progress < 1) requestAnimationFrame(tick);
-    }
+  const { start, end } = getMonthRange();
 
-    requestAnimationFrame(tick);
+  const { data, error } = await supabase
+    .from('daily_reports')
+    .select('*')
+    .gte('report_date', start)
+    .lte('report_date', end)
+    .order('report_date', { ascending: true });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    showToast('Failed to load data: ' + error.message, 'error');
+    state.loading = false;
+    renderEmpty();
+    return;
+  }
+
+  state.reports = data || [];
+  state.loading = false;
+
+  if (state.reports.length === 0) {
+    renderEmpty();
+    return;
+  }
+
+  computeMTD();
+  renderDashboard();
+}
+
+/* =================================================================
+   COMPUTE MTD AGGREGATES
+   ================================================================= */
+function computeMTD() {
+  const r = state.reports;
+  const count = r.length;
+  const { daysInMonth } = getMonthRange();
+
+  const totalSale = r.reduce((s, d) => s + Number(d.total_sale), 0);
+  const totalBills = r.reduce((s, d) => s + Number(d.bills), 0);
+  const totalQty = r.reduce((s, d) => s + Number(d.qty_sold), 0);
+  const target = Number(r[r.length - 1].target) || 0;
+
+  const avgSale = count > 0 ? totalSale / count : 0;
+  const avgBills = count > 0 ? totalBills / count : 0;
+  const avgQty = count > 0 ? totalQty / count : 0;
+  const avgATV = totalBills > 0 ? totalSale / totalBills : 0;
+  const avgUPT = totalBills > 0 ? totalQty / totalBills : 0;
+  const avgASP = totalQty > 0 ? totalSale / totalQty : 0;
+
+  const achievementPct = target > 0 ? (totalSale / target) * 100 : 0;
+  const remaining = Math.max(0, target - totalSale);
+  const dailyTarget = target / daysInMonth;
+
+  // Trend: project total sale to end of month based on avg
+  const trend = avgSale * daysInMonth;
+
+  state.today = r[r.length - 1]; // most recent report
+  state.mtd = {
+    totalSale, totalBills, totalQty, target,
+    avgSale, avgBills, avgQty, avgATV, avgUPT, avgASP,
+    achievementPct, remaining, dailyTarget, trend,
+    count, daysInMonth
+  };
+}
+
+/* =================================================================
+   RENDER: LOADING STATE
+   ================================================================= */
+function renderLoading() {
+  const el = document.getElementById('dashboardContent');
+  el.innerHTML = `
+    <div class="section-title" style="margin-top:16px">Key Metrics</div>
+    <div class="kpi-grid">
+      ${Array(6).fill('<div class="skeleton skeleton-kpi"></div>').join('')}
+    </div>
+    <div class="section-title">Monthly Target</div>
+    <div class="skeleton skeleton-chart" style="height:100px"></div>
+    <div class="section-title">Visual Analytics</div>
+    <div class="charts-grid">
+      <div class="skeleton skeleton-chart wide" style="grid-column:span 2"></div>
+      <div class="skeleton skeleton-chart"></div>
+      <div class="skeleton skeleton-chart"></div>
+    </div>
+  `;
+}
+
+/* =================================================================
+   RENDER: EMPTY STATE
+   ================================================================= */
+function renderEmpty() {
+  document.getElementById('dashboardContent').innerHTML = `
+    <div class="empty-state">
+      <div class="icon">&#128202;</div>
+      <h3>No reports yet</h3>
+      <p>Tap the + button to add your first daily report and watch the dashboard come alive.</p>
+    </div>
+  `;
+  document.getElementById('dateInfo').textContent = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
+  document.getElementById('headerAchievement').textContent = '--';
+  document.getElementById('footerText').textContent = 'No data yet \u2022 Add a report to get started';
 }
 
-// trigger counters when KPIs are visible
-const kpiObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      animateCounters();
-      kpiObserver.disconnect();
+/* =================================================================
+   RENDER: FULL DASHBOARD
+   ================================================================= */
+function renderDashboard() {
+  const t = state.today;
+  const m = state.mtd;
+
+  // Update header
+  document.getElementById('dateInfo').textContent =
+    formatDate(t.report_date) +
+    (t.opening_time && t.closing_time ? ` \u00B7 ${formatTime(t.opening_time)} \u2013 ${formatTime(t.closing_time)}` : '');
+  document.getElementById('headerAchievement').textContent = m.achievementPct.toFixed(1) + '%';
+  document.getElementById('footerText').textContent =
+    `Auto-generated report \u00B7 ${m.count} day${m.count > 1 ? 's' : ''} of data \u00B7 ${new Date().toLocaleDateString('en-IN')}`;
+
+  const todaySale = Number(t.total_sale);
+  const todayBills = Number(t.bills);
+  const todayQty = Number(t.qty_sold);
+  const todayATV = Number(t.atv) || (todayBills > 0 ? todaySale / todayBills : 0);
+  const todayUPT = Number(t.upt) || (todayBills > 0 ? todayQty / todayBills : 0);
+  const todayASP = Number(t.asp) || (todayQty > 0 ? todaySale / todayQty : 0);
+
+  // Build all HTML sections
+  let html = '';
+
+  // KPI section
+  html += renderKPIs(todaySale, todayBills, todayQty, todayATV, todayUPT, todayASP, m);
+
+  // Target section
+  html += renderTargetProgress(m);
+
+  // Charts section
+  html += renderChartsHTML();
+
+  // Summary table
+  html += renderSummaryTable(todaySale, todayBills, todayQty, todayATV, todayUPT, todayASP, m);
+
+  document.getElementById('dashboardContent').innerHTML = html;
+
+  // Build chart instances after DOM is ready
+  buildCharts();
+
+  // Animate progress bar
+  setTimeout(() => {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = Math.min(m.achievementPct, 100) + '%';
+  }, 300);
+}
+
+/* =================================================================
+   RENDER: KPI CARDS
+   ================================================================= */
+function renderKPIs(sale, bills, qty, atv, upt, asp, m) {
+  function pctChange(today, avg) {
+    if (avg === 0) return '';
+    const pct = ((today - avg) / avg) * 100;
+    const cls = pct >= 0 ? 'up' : 'down';
+    const sign = pct >= 0 ? '+' : '';
+    return `<span style="font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:6px;color:var(--${pct >= 0 ? 'green' : 'red'});background:rgba(${pct >= 0 ? '16,185,129' : '239,68,68'},0.1)">${sign}${pct.toFixed(0)}%</span>`;
+  }
+
+  return `
+    <div class="section-title" style="margin-top:16px">Key Metrics</div>
+    <div class="kpi-grid fade-in" style="animation-delay:0.1s">
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon sale">&#8377;</div>
+          ${pctChange(sale, m.avgSale)}
+        </div>
+        <div class="kpi-label">Today's Sale</div>
+        <div class="kpi-value">${fmtR(sale)}</div>
+        <div class="kpi-desc">vs ${fmtR(m.avgSale)} daily avg</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon bills">&#9776;</div>
+          ${pctChange(bills, m.avgBills)}
+        </div>
+        <div class="kpi-label">Bills Generated</div>
+        <div class="kpi-value">${bills}</div>
+        <div class="kpi-desc">total transactions</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon qty">&#9645;</div>
+          ${pctChange(qty, m.avgQty)}
+        </div>
+        <div class="kpi-label">Qty Sold</div>
+        <div class="kpi-value">${qty}</div>
+        <div class="kpi-desc">items across all bills</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon atv">&#8377;</div>
+          ${pctChange(atv, m.avgATV)}
+        </div>
+        <div class="kpi-label">Avg Transaction</div>
+        <div class="kpi-value">${fmtR(atv)}</div>
+        <div class="kpi-desc">per bill (ATV)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon upt">&#9878;</div>
+          ${pctChange(upt, m.avgUPT)}
+        </div>
+        <div class="kpi-label">Units / Transaction</div>
+        <div class="kpi-value">${upt.toFixed(2)}</div>
+        <div class="kpi-desc">avg items per bill (UPT)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-icon asp">&#8377;</div>
+          ${pctChange(asp, m.avgASP)}
+        </div>
+        <div class="kpi-label">Avg Selling Price</div>
+        <div class="kpi-value">${fmtR(asp)}</div>
+        <div class="kpi-desc">per unit sold (ASP)</div>
+      </div>
+    </div>
+  `;
+}
+
+/* =================================================================
+   RENDER: TARGET PROGRESS
+   ================================================================= */
+function renderTargetProgress(m) {
+  return `
+    <div class="section-title">Monthly Target</div>
+    <div class="target-card fade-in" style="animation-delay:0.15s">
+      <div class="target-header">
+        <h3>MTD Achievement</h3>
+        <div class="pct color-blue">${m.achievementPct.toFixed(1)}%</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="target-row">
+        <span>Achieved: <strong class="color-green">${fmtR(m.totalSale)}</strong></span>
+        <span>Remaining: <strong class="color-red">${fmtR(m.remaining)}</strong></span>
+        <span>Target: <strong>${fmtR(m.target)}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+/* =================================================================
+   RENDER: CHARTS HTML (canvases)
+   ================================================================= */
+function renderChartsHTML() {
+  return `
+    <div class="section-title">Visual Analytics</div>
+    <div class="charts-grid">
+      <div class="chart-card wide fade-in" style="animation-delay:0.2s">
+        <div class="chart-header">
+          <h3>Daily Sales Trend</h3>
+          <span class="hint">Day-over-day revenue this month</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="lineChart" height="90"></canvas>
+        </div>
+      </div>
+      <div class="chart-card fade-in" style="animation-delay:0.25s">
+        <div class="chart-header">
+          <h3>Sales Comparison</h3>
+          <span class="hint">Today vs MTD vs Target</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="salesBar" height="180"></canvas>
+        </div>
+      </div>
+      <div class="chart-card fade-in" style="animation-delay:0.3s">
+        <div class="chart-header">
+          <h3>Transaction Breakdown</h3>
+          <span class="hint">ATV / ASP / UPT share</span>
+        </div>
+        <div class="chart-body" style="max-width:260px; margin:0 auto;">
+          <canvas id="txnDoughnut"></canvas>
+        </div>
+      </div>
+      <div class="chart-card fade-in" style="animation-delay:0.35s">
+        <div class="chart-header">
+          <h3>MTD Achieved vs Gap</h3>
+          <span class="hint">Progress toward target</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="mtdBar" height="180"></canvas>
+        </div>
+      </div>
+      <div class="chart-card fade-in" style="animation-delay:0.4s">
+        <div class="chart-header">
+          <h3>Bills & Qty Trend</h3>
+          <span class="hint">Daily bills and items sold</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="billsQtyLine" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* =================================================================
+   RENDER: SUMMARY TABLE
+   ================================================================= */
+function renderSummaryTable(sale, bills, qty, atv, upt, asp, m) {
+  return `
+    <div class="section-title">Detailed Numbers</div>
+    <div class="chart-card fade-in" style="animation-delay:0.45s">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Latest Day</th>
+            <th>MTD</th>
+            <th>Avg / Day</th>
+            <th style="text-align:right">Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="num">${fmtR(sale)}</td>
+            <td class="num">${fmtR(m.totalSale)}</td>
+            <td class="num">${fmtR(m.avgSale)}</td>
+            <td class="num">${fmtR(m.target)}</td>
+          </tr>
+          <tr>
+            <td>Bills</td>
+            <td class="num">${bills}</td>
+            <td class="num">${m.totalBills}</td>
+            <td class="num">${m.avgBills.toFixed(1)}</td>
+            <td class="num">&mdash;</td>
+          </tr>
+          <tr>
+            <td>Qty Sold</td>
+            <td class="num">${qty}</td>
+            <td class="num">${m.totalQty}</td>
+            <td class="num">${m.avgQty.toFixed(1)}</td>
+            <td class="num">&mdash;</td>
+          </tr>
+          <tr>
+            <td>ATV</td>
+            <td class="num">${fmtR(atv)}</td>
+            <td class="num">${fmtR(m.avgATV)}</td>
+            <td class="num">${fmtR(m.avgATV)}</td>
+            <td class="num">&mdash;</td>
+          </tr>
+          <tr>
+            <td>UPT</td>
+            <td class="num">${upt.toFixed(2)}</td>
+            <td class="num">${m.avgUPT.toFixed(2)}</td>
+            <td class="num">${m.avgUPT.toFixed(2)}</td>
+            <td class="num">&mdash;</td>
+          </tr>
+          <tr>
+            <td>ASP</td>
+            <td class="num">${fmtR(asp)}</td>
+            <td class="num">${fmtR(m.avgASP)}</td>
+            <td class="num">${fmtR(m.avgASP)}</td>
+            <td class="num">&mdash;</td>
+          </tr>
+          <tr>
+            <td><strong>Projected Trend</strong></td>
+            <td></td>
+            <td class="num"><strong>${fmtR(m.trend)}</strong></td>
+            <td></td>
+            <td class="num"><strong>${fmtR(m.target)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* =================================================================
+   CHART DEFAULTS & HELPERS
+   ================================================================= */
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.animation = { duration: 900, easing: 'easeOutQuart' };
+
+function chartOptions() {
+  return {
+    gridColor: themeColor('--chart-grid'),
+    textColor: themeColor('--chart-text'),
+    tooltipBg: themeColor('--tooltip-bg'),
+    borderColor: themeColor('--border'),
+  };
+}
+
+function tooltipStyle() {
+  const o = chartOptions();
+  return {
+    backgroundColor: o.tooltipBg,
+    titleColor: themeColor('--text'),
+    bodyColor: themeColor('--text-2'),
+    borderColor: o.borderColor,
+    borderWidth: 1,
+    cornerRadius: 8,
+    padding: 10,
+    displayColors: true,
+    boxPadding: 4,
+  };
+}
+
+/* =================================================================
+   BUILD CHARTS FROM STATE
+   ================================================================= */
+const charts = {};
+
+function buildCharts() {
+  if (!state.mtd || state.reports.length === 0) return;
+  const o = chartOptions();
+  const r = state.reports;
+  const m = state.mtd;
+  const t = state.today;
+
+  const todaySale = Number(t.total_sale);
+  const todayBills = Number(t.bills);
+  const todayQty = Number(t.qty_sold);
+  const todayATV = Number(t.atv) || (todayBills > 0 ? todaySale / todayBills : 0);
+  const todayUPT = Number(t.upt) || (todayBills > 0 ? todayQty / todayBills : 0);
+  const todayASP = Number(t.asp) || (todayQty > 0 ? todaySale / todayQty : 0);
+
+  // Labels & data from reports
+  const dayLabels = r.map(d => {
+    const dt = new Date(d.report_date + 'T00:00:00');
+    return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  });
+  const dailySales = r.map(d => Number(d.total_sale));
+  const dailyBills = r.map(d => Number(d.bills));
+  const dailyQty = r.map(d => Number(d.qty_sold));
+
+  // 1. Daily Sales Line (wide)
+  const lineCtx = document.getElementById('lineChart');
+  if (lineCtx) {
+    charts.line = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: dayLabels,
+        datasets: [{
+          label: 'Daily Sale',
+          data: dailySales,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.08)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: '#3b82f6',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointHoverRadius: 7,
+        }, {
+          label: 'Target / Day',
+          data: Array(r.length).fill(m.dailyTarget),
+          borderColor: themeColor('--muted'),
+          borderDash: [6, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'circle', color: o.textColor, padding: 16 } },
+          tooltip: { ...tooltipStyle(), callbacks: { label: ctx => ` ${ctx.dataset.label}: \u20B9${fmt(ctx.raw)}` } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: o.textColor } },
+          y: { grid: { color: o.gridColor }, ticks: { color: o.textColor, callback: v => `\u20B9${(v / 1000).toFixed(0)}K` }, beginAtZero: false }
+        }
+      }
+    });
+  }
+
+  // 2. Sales Comparison Bar
+  const barCtx = document.getElementById('salesBar');
+  if (barCtx) {
+    charts.salesBar = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Latest Day', 'MTD', 'MTD Avg', 'Trend', 'Target'],
+        datasets: [{
+          label: '\u20B9',
+          data: [todaySale, m.totalSale, m.avgSale, m.trend, m.target],
+          backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f97316', '#ef4444'],
+          borderRadius: 6,
+          barPercentage: 0.65,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...tooltipStyle(), callbacks: { label: ctx => ` \u20B9${fmt(ctx.raw)}` } }
+        },
+        scales: {
+          x: { grid: { color: o.gridColor }, ticks: { color: o.textColor, callback: v => `\u20B9${(v / 100000).toFixed(1)}L` } },
+          y: { grid: { display: false }, ticks: { color: o.textColor, font: { weight: 500 } } }
+        }
+      }
+    });
+  }
+
+  // 3. Transaction Doughnut
+  const doughCtx = document.getElementById('txnDoughnut');
+  if (doughCtx) {
+    charts.doughnut = new Chart(doughCtx, {
+      type: 'doughnut',
+      data: {
+        labels: [`ATV \u20B9${fmt(Math.round(todayATV))}`, `ASP \u20B9${fmt(Math.round(todayASP))}`, `UPT ${todayUPT.toFixed(2)}`],
+        datasets: [{
+          data: [Math.round(todayATV), Math.round(todayASP), Math.round(todayUPT * 100)],
+          backgroundColor: ['#f97316', '#f59e0b', '#ec4899'],
+          borderWidth: 0,
+          hoverOffset: 12,
+          spacing: 3,
+        }]
+      },
+      options: {
+        cutout: '62%',
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'circle', color: o.textColor, padding: 14 } },
+          tooltip: { ...tooltipStyle(), callbacks: { label: ctx => ' ' + ctx.label } }
+        }
+      }
+    });
+  }
+
+  // 4. MTD Stacked Bar
+  const mtdCtx = document.getElementById('mtdBar');
+  if (mtdCtx) {
+    charts.mtdBar = new Chart(mtdCtx, {
+      type: 'bar',
+      data: {
+        labels: ['MTD Sale', 'MTD Avg', 'Target'],
+        datasets: [
+          { label: 'Achieved', data: [m.totalSale, m.avgSale, m.totalSale], backgroundColor: '#10b981', borderRadius: 6 },
+          { label: 'Remaining', data: [0, 0, m.remaining], backgroundColor: o.gridColor, borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'circle', color: o.textColor, padding: 14 } },
+          tooltip: { ...tooltipStyle(), callbacks: { label: ctx => ` ${ctx.dataset.label}: \u20B9${fmt(ctx.raw)}` } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { color: o.textColor } },
+          y: { stacked: true, grid: { color: o.gridColor }, ticks: { color: o.textColor, callback: v => `\u20B9${(v / 100000).toFixed(0)}L` } }
+        }
+      }
+    });
+  }
+
+  // 5. Bills & Qty Line
+  const bqCtx = document.getElementById('billsQtyLine');
+  if (bqCtx) {
+    charts.billsQty = new Chart(bqCtx, {
+      type: 'line',
+      data: {
+        labels: dayLabels,
+        datasets: [{
+          label: 'Bills',
+          data: dailyBills,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,0.08)',
+          fill: false,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#10b981',
+          yAxisID: 'y',
+        }, {
+          label: 'Qty Sold',
+          data: dailyQty,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139,92,246,0.08)',
+          fill: false,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#8b5cf6',
+          yAxisID: 'y1',
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { boxWidth: 10, usePointStyle: true, pointStyle: 'circle', color: o.textColor, padding: 14 } },
+          tooltip: { ...tooltipStyle() }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: o.textColor } },
+          y: { type: 'linear', position: 'left', grid: { color: o.gridColor }, ticks: { color: '#10b981' }, title: { display: true, text: 'Bills', color: '#10b981' } },
+          y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#8b5cf6' }, title: { display: true, text: 'Qty', color: '#8b5cf6' } }
+        }
+      }
+    });
+  }
+}
+
+/* =================================================================
+   THEME UPDATE (rebuild charts)
+   ================================================================= */
+function updateChartsTheme() {
+  Object.values(charts).forEach(c => c.destroy());
+  Object.keys(charts).forEach(k => delete charts[k]);
+  requestAnimationFrame(() => requestAnimationFrame(buildCharts));
+}
+
+/* =================================================================
+   MODAL & FORM
+   ================================================================= */
+const modal = document.getElementById('modalOverlay');
+const form = document.getElementById('reportForm');
+const fabBtn = document.getElementById('fabAdd');
+
+fabBtn.addEventListener('click', () => {
+  // Set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fDate').value = today;
+
+  // Pre-fill target from last known
+  if (state.reports.length > 0) {
+    const lastTarget = state.reports[state.reports.length - 1].target;
+    document.getElementById('fTarget').value = lastTarget || '';
+  }
+
+  document.getElementById('modalTitle').textContent = 'Add Daily Report';
+  modal.classList.add('active');
+});
+
+document.getElementById('btnCancel').addEventListener('click', () => {
+  modal.classList.remove('active');
+  form.reset();
+});
+
+modal.addEventListener('click', (e) => {
+  if (e.target === modal) {
+    modal.classList.remove('active');
+    form.reset();
+  }
+});
+
+// Auto-calculate ATV, UPT, ASP when sale/bills/qty change
+['fSale', 'fBills', 'fQty'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const sale = parseFloat(document.getElementById('fSale').value) || 0;
+    const bills = parseInt(document.getElementById('fBills').value) || 0;
+    const qty = parseInt(document.getElementById('fQty').value) || 0;
+
+    if (bills > 0) {
+      document.getElementById('fATV').placeholder = `Auto: ${(sale / bills).toFixed(2)}`;
+      document.getElementById('fUPT').placeholder = `Auto: ${(qty / bills).toFixed(2)}`;
+    }
+    if (qty > 0) {
+      document.getElementById('fASP').placeholder = `Auto: ${(sale / qty).toFixed(2)}`;
     }
   });
-}, { threshold: 0.3 });
-
-kpiObserver.observe(document.querySelector('.grid-kpi'));
-
-/* ── Chart gradient helper ───────────────────── */
-function createGradient(ctx, c1, c2, vertical = true) {
-  const g = vertical
-    ? ctx.createLinearGradient(0, 0, 0, ctx.canvas.height)
-    : ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
-  g.addColorStop(0, c1);
-  g.addColorStop(1, c2);
-  return g;
-}
-
-/* ═══════ 1. TARGET GAUGE (doughnut 180°) ═══════ */
-const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
-const gaugeGrad = createGradient(gaugeCtx, '#facc15', '#fb923c', false);
-
-new Chart(gaugeCtx, {
-  type: 'doughnut',
-  data: {
-    labels: ['Achieved', 'Remaining'],
-    datasets: [{
-      data: [190715, 1800000 - 190715],
-      backgroundColor: [gaugeGrad, 'rgba(30, 41, 59, 0.5)'],
-      borderWidth: 0,
-      circumference: 180,
-      rotation: 270,
-    }]
-  },
-  options: {
-    cutout: '75%',
-    responsive: true,
-    animation: { duration: 1500, easing: 'easeOutQuart' },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        borderColor: 'rgba(56, 189, 248, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        titleFont: { family: "'Inter'" },
-        bodyFont: { family: "'Inter'" },
-        callbacks: {
-          label: ctx => `${ctx.label}: ₹${fmt(ctx.raw)}`
-        }
-      }
-    }
-  }
 });
 
-/* ═══════ 2. SALES COMPARISON BAR ═══════════════ */
-const salesCtx = document.getElementById('salesBar').getContext('2d');
+// Form submit
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
 
-new Chart(salesCtx, {
-  type: 'bar',
-  data: {
-    labels: ["Today's Sale", 'CY MTD Sale', 'CY MTD Avg Sale', 'Sales Trend', 'Target'],
-    datasets: [{
-      label: 'Amount (₹)',
-      data: [38879, 190715, 47679, 1478041, 1800000],
-      backgroundColor: [
-        'rgba(56, 189, 248, 0.8)',
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(167, 139, 250, 0.8)',
-        'rgba(251, 146, 60, 0.8)',
-        'rgba(239, 68, 68, 0.8)'
-      ],
-      hoverBackgroundColor: ['#38bdf8', '#22c55e', '#a78bfa', '#fb923c', '#ef4444'],
-      borderRadius: 8,
-      barPercentage: 0.6,
-      borderSkipped: false,
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    animation: { duration: 1200, easing: 'easeOutQuart' },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        borderColor: 'rgba(56, 189, 248, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        callbacks: { label: ctx => ` ₹${fmt(ctx.raw)}` }
-      }
-    },
-    scales: {
-      x: {
-        ticks: {
-          callback: v => `₹${(v / 100000).toFixed(1)}L`,
-          font: { size: 11, weight: 500 }
-        },
-        grid: { color: 'rgba(51, 65, 85, 0.3)' }
-      },
-      y: {
-        grid: { display: false },
-        ticks: { font: { size: 11, weight: 500 } }
-      }
-    }
+  const sale = parseFloat(document.getElementById('fSale').value);
+  const bills = parseInt(document.getElementById('fBills').value);
+  const qty = parseInt(document.getElementById('fQty').value);
+
+  const row = {
+    report_date: document.getElementById('fDate').value,
+    total_sale: sale,
+    bills: bills,
+    qty_sold: qty,
+    atv: parseFloat(document.getElementById('fATV').value) || (bills > 0 ? sale / bills : 0),
+    upt: parseFloat(document.getElementById('fUPT').value) || (bills > 0 ? qty / bills : 0),
+    asp: parseFloat(document.getElementById('fASP').value) || (qty > 0 ? sale / qty : 0),
+    target: parseFloat(document.getElementById('fTarget').value) || 0,
+    opening_time: document.getElementById('fOpen').value || null,
+    closing_time: document.getElementById('fClose').value || null,
+  };
+
+  const { error } = await supabase
+    .from('daily_reports')
+    .upsert(row, { onConflict: 'report_date' });
+
+  btn.disabled = false;
+  btn.textContent = 'Save Report';
+
+  if (error) {
+    console.error('Save error:', error);
+    showToast('Failed to save: ' + error.message, 'error');
+    return;
   }
+
+  showToast('Report saved successfully!', 'success');
+  modal.classList.remove('active');
+  form.reset();
+
+  // Reload all data
+  await loadAllData();
 });
 
-/* ═══════ 3. MTD METRICS BAR ════════════════════ */
-new Chart(document.getElementById('mtdBar'), {
-  type: 'bar',
-  data: {
-    labels: ['CY MTD Sale', 'CY MTD Avg Sale', 'Target'],
-    datasets: [
-      {
-        label: 'Achieved',
-        data: [190715, 47679, 190715],
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-        hoverBackgroundColor: '#22c55e',
-        borderRadius: 8,
-        borderSkipped: false,
-      },
-      {
-        label: 'Gap / Target',
-        data: [0, 0, 1800000 - 190715],
-        backgroundColor: 'rgba(51, 65, 85, 0.4)',
-        hoverBackgroundColor: 'rgba(51, 65, 85, 0.6)',
-        borderRadius: 8,
-        borderSkipped: false,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    animation: { duration: 1200, easing: 'easeOutQuart' },
-    plugins: {
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        borderColor: 'rgba(56, 189, 248, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        callbacks: { label: ctx => `${ctx.dataset.label}: ₹${fmt(ctx.raw)}` }
-      },
-      legend: {
-        labels: {
-          boxWidth: 12,
-          padding: 16,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          font: { size: 11, weight: 500 }
-        }
-      }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        grid: { display: false },
-        ticks: { font: { size: 11, weight: 500 } }
-      },
-      y: {
-        stacked: true,
-        ticks: {
-          callback: v => `₹${(v / 100000).toFixed(1)}L`,
-          font: { size: 11, weight: 500 }
-        },
-        grid: { color: 'rgba(51, 65, 85, 0.3)' }
-      }
-    }
-  }
-});
-
-/* ═══════ 4. PER-TRANSACTION DOUGHNUT ═══════════ */
-const txnCtx = document.getElementById('txnDoughnut').getContext('2d');
-
-new Chart(txnCtx, {
-  type: 'doughnut',
-  data: {
-    labels: ['ATV (₹2,592)', 'ASP (₹682)', 'UPT (3.80 units)'],
-    datasets: [{
-      data: [2592, 682, 380],
-      backgroundColor: [
-        'rgba(251, 146, 60, 0.85)',
-        'rgba(250, 204, 21, 0.85)',
-        'rgba(244, 114, 182, 0.85)'
-      ],
-      hoverBackgroundColor: ['#fb923c', '#facc15', '#f472b6'],
-      borderWidth: 0,
-      hoverOffset: 16,
-      spacing: 4,
-    }]
-  },
-  options: {
-    cutout: '60%',
-    responsive: true,
-    animation: { duration: 1500, easing: 'easeOutQuart' },
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          boxWidth: 12,
-          padding: 16,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          font: { size: 11, weight: 500 }
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        borderColor: 'rgba(56, 189, 248, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        callbacks: {
-          label: ctx => ' ' + ctx.label
-        }
-      }
-    }
-  }
-});
+/* =================================================================
+   INIT
+   ================================================================= */
+loadAllData();
 </script>
 
 </body>
