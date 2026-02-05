@@ -420,8 +420,8 @@
       color: var(--text);
     }
     .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 14px;
     }
     .form-group {
@@ -429,7 +429,6 @@
       flex-direction: column;
       gap: 5px;
     }
-    .form-group.full { grid-column: span 2; }
     .form-group label {
       font-size: 0.72rem;
       font-weight: 600;
@@ -553,6 +552,62 @@
     .skeleton-kpi { height: 120px; }
     .skeleton-chart { height: 200px; }
 
+    /* ── Date filter bar ──────────────────────────── */
+    .date-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .date-filter-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+    .date-chip {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .date-chip:hover { background: var(--surface-2); color: var(--text); }
+    .date-chip.active {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff;
+      border-color: transparent;
+    }
+    .date-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .date-input:focus { border-color: var(--blue); }
+    .date-separator {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
     /* ── Responsive ──────────────────────────────── */
     @media (max-width: 768px) {
       .app { padding: 14px 16px 32px; }
@@ -562,9 +617,9 @@
       .charts-grid { grid-template-columns: 1fr; }
       .chart-card.wide { grid-column: span 1; }
       .navbar-title span { display: none; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-group.full { grid-column: span 1; }
       .fab { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.4rem; }
+      .date-filter { gap: 8px; }
+      .date-separator { display: none; }
     }
     @media (max-width: 480px) {
       .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -612,6 +667,21 @@
     </div>
   </div>
 
+  <!-- DATE FILTER -->
+  <div class="date-filter fade-in" style="animation-delay:0.08s">
+    <span class="date-filter-label">View:</span>
+    <button class="date-chip" data-range="today">Today</button>
+    <button class="date-chip" data-range="7d">Last 7 Days</button>
+    <button class="date-chip active" data-range="month">This Month</button>
+    <button class="date-chip" data-range="all">All Time</button>
+    <span class="date-separator">|</span>
+    <span class="date-filter-label">Custom:</span>
+    <input type="date" class="date-input" id="filterStart" />
+    <span class="date-separator">to</span>
+    <input type="date" class="date-input" id="filterEnd" />
+    <button class="date-chip" id="filterApply">Apply</button>
+  </div>
+
   <!-- MAIN CONTENT (dynamically rendered) -->
   <div id="dashboardContent"></div>
 
@@ -631,7 +701,7 @@
     <div class="modal-title" id="modalTitle">Add Daily Report</div>
     <form id="reportForm">
       <div class="form-grid">
-        <div class="form-group full">
+        <div class="form-group">
           <label for="fDate">Report Date</label>
           <input type="date" id="fDate" required />
         </div>
@@ -663,10 +733,7 @@
           <label for="fASP">ASP</label>
           <input type="number" id="fASP" placeholder="auto-calc or manual" step="0.01" />
         </div>
-        <div class="form-group">
-          <label>&nbsp;</label>
-          <span style="font-size:0.7rem; color:var(--muted); padding-top: 4px;">Leave blank to auto-calculate</span>
-        </div>
+        <div style="font-size:0.7rem; color:var(--muted); margin: -6px 0 2px;">ATV, UPT, ASP: leave blank to auto-calculate</div>
         <div class="form-group">
           <label for="fOpen">Opening Time</label>
           <input type="time" id="fOpen" value="09:30" />
@@ -693,7 +760,8 @@
    ================================================================= */
 const SUPABASE_URL = 'https://zovnmmdfthpbubrorsgh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvdm5tbWRmdGhwYnVicm9yc2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1NzE3ODgsImV4cCI6MjA3NzE0Nzc4OH0.92BH2sjUOgkw6iSRj1_4gt0p3eThg3QT4VK-Q4EdmBE';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const { createClient } = window.supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* =================================================================
    APP STATE
@@ -728,9 +796,18 @@ function themeColor(prop) {
   return getComputedStyle(html).getPropertyValue(prop).trim();
 }
 
+function fmtDD(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const weekday = d.toLocaleDateString('en-IN', { weekday: 'long' });
+  return `${weekday}, ${fmtDD(dateStr)}`;
 }
 
 function formatTime(t) {
@@ -778,19 +855,24 @@ function showToast(message, type = 'success') {
 }
 
 /* =================================================================
-   DATA LOADING
+   DATA LOADING (supports custom date range)
    ================================================================= */
-async function loadAllData() {
+async function loadAllData(startDate, endDate) {
   state.loading = true;
   renderLoading();
 
-  const { start, end } = getMonthRange();
+  // Default to current month
+  if (!startDate || !endDate) {
+    const mr = getMonthRange();
+    startDate = mr.start;
+    endDate = mr.end;
+  }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('daily_reports')
     .select('*')
-    .gte('report_date', start)
-    .lte('report_date', end)
+    .gte('report_date', startDate)
+    .lte('report_date', endDate)
     .order('report_date', { ascending: true });
 
   if (error) {
@@ -812,6 +894,56 @@ async function loadAllData() {
   computeMTD();
   renderDashboard();
 }
+
+/* =================================================================
+   DATE FILTER LOGIC
+   ================================================================= */
+function setActiveChip(range) {
+  document.querySelectorAll('.date-chip[data-range]').forEach(c => c.classList.remove('active'));
+  const chip = document.querySelector(`.date-chip[data-range="${range}"]`);
+  if (chip) chip.classList.add('active');
+}
+
+document.querySelectorAll('.date-chip[data-range]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const range = chip.dataset.range;
+    setActiveChip(range);
+    const now = new Date();
+    let start, end;
+
+    if (range === 'today') {
+      start = end = now.toISOString().split('T')[0];
+    } else if (range === '7d') {
+      end = now.toISOString().split('T')[0];
+      const d = new Date(now);
+      d.setDate(d.getDate() - 6);
+      start = d.toISOString().split('T')[0];
+    } else if (range === 'month') {
+      const mr = getMonthRange();
+      start = mr.start;
+      end = mr.end;
+    } else if (range === 'all') {
+      start = '2020-01-01';
+      end = '2099-12-31';
+    }
+
+    document.getElementById('filterStart').value = start;
+    document.getElementById('filterEnd').value = end;
+    loadAllData(start, end);
+  });
+});
+
+document.getElementById('filterApply').addEventListener('click', () => {
+  const start = document.getElementById('filterStart').value;
+  const end = document.getElementById('filterEnd').value;
+  if (!start || !end) {
+    showToast('Pick both start and end dates', 'error');
+    return;
+  }
+  // Deactivate preset chips
+  document.querySelectorAll('.date-chip[data-range]').forEach(c => c.classList.remove('active'));
+  loadAllData(start, end);
+});
 
 /* =================================================================
    COMPUTE MTD AGGREGATES
@@ -881,9 +1013,7 @@ function renderEmpty() {
       <p>Tap the + button to add your first daily report and watch the dashboard come alive.</p>
     </div>
   `;
-  document.getElementById('dateInfo').textContent = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
+  document.getElementById('dateInfo').textContent = fmtDD(new Date().toISOString().split('T')[0]);
   document.getElementById('headerAchievement').textContent = '--';
   document.getElementById('footerText').textContent = 'No data yet \u2022 Add a report to get started';
 }
@@ -901,7 +1031,7 @@ function renderDashboard() {
     (t.opening_time && t.closing_time ? ` \u00B7 ${formatTime(t.opening_time)} \u2013 ${formatTime(t.closing_time)}` : '');
   document.getElementById('headerAchievement').textContent = m.achievementPct.toFixed(1) + '%';
   document.getElementById('footerText').textContent =
-    `Auto-generated report \u00B7 ${m.count} day${m.count > 1 ? 's' : ''} of data \u00B7 ${new Date().toLocaleDateString('en-IN')}`;
+    `Auto-generated report \u00B7 ${m.count} day${m.count > 1 ? 's' : ''} of data \u00B7 ${fmtDD(new Date().toISOString().split('T')[0])}`;
 
   const todaySale = Number(t.total_sale);
   const todayBills = Number(t.bills);
@@ -1093,68 +1223,61 @@ function renderChartsHTML() {
    RENDER: SUMMARY TABLE
    ================================================================= */
 function renderSummaryTable(sale, bills, qty, atv, upt, asp, m) {
+  // Per-day rows with date
+  const dayRows = state.reports.map(r => {
+    const dateLabel = fmtDD(r.report_date);
+    const rSale = Number(r.total_sale);
+    const rBills = Number(r.bills);
+    const rQty = Number(r.qty_sold);
+    const rATV = Number(r.atv) || (rBills > 0 ? rSale / rBills : 0);
+    const rUPT = Number(r.upt) || (rBills > 0 ? rQty / rBills : 0);
+    const rASP = Number(r.asp) || (rQty > 0 ? rSale / rQty : 0);
+    return `<tr>
+      <td>${dateLabel}</td>
+      <td class="num">${fmtR(rSale)}</td>
+      <td class="num">${rBills}</td>
+      <td class="num">${rQty}</td>
+      <td class="num">${fmtR(rATV)}</td>
+      <td class="num">${rUPT.toFixed(2)}</td>
+      <td class="num">${fmtR(rASP)}</td>
+    </tr>`;
+  }).join('');
+
   return `
-    <div class="section-title">Detailed Numbers</div>
-    <div class="chart-card fade-in" style="animation-delay:0.45s">
+    <div class="section-title">Daily Breakdown</div>
+    <div class="chart-card fade-in" style="animation-delay:0.45s; overflow-x:auto;">
       <table class="summary-table">
         <thead>
           <tr>
-            <th>Metric</th>
-            <th>Latest Day</th>
-            <th>MTD</th>
-            <th>Avg / Day</th>
-            <th style="text-align:right">Target</th>
+            <th>Date</th>
+            <th style="text-align:right">Sale</th>
+            <th style="text-align:right">Bills</th>
+            <th style="text-align:right">Qty</th>
+            <th style="text-align:right">ATV</th>
+            <th style="text-align:right">UPT</th>
+            <th style="text-align:right">ASP</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Revenue</td>
-            <td class="num">${fmtR(sale)}</td>
-            <td class="num">${fmtR(m.totalSale)}</td>
-            <td class="num">${fmtR(m.avgSale)}</td>
-            <td class="num">${fmtR(m.target)}</td>
+          ${dayRows}
+          <tr style="border-top:2px solid var(--border)">
+            <td><strong>Total / Avg</strong></td>
+            <td class="num"><strong>${fmtR(m.totalSale)}</strong></td>
+            <td class="num"><strong>${m.totalBills}</strong></td>
+            <td class="num"><strong>${m.totalQty}</strong></td>
+            <td class="num"><strong>${fmtR(m.avgATV)}</strong></td>
+            <td class="num"><strong>${m.avgUPT.toFixed(2)}</strong></td>
+            <td class="num"><strong>${fmtR(m.avgASP)}</strong></td>
           </tr>
           <tr>
-            <td>Bills</td>
-            <td class="num">${bills}</td>
-            <td class="num">${m.totalBills}</td>
-            <td class="num">${m.avgBills.toFixed(1)}</td>
-            <td class="num">&mdash;</td>
-          </tr>
-          <tr>
-            <td>Qty Sold</td>
-            <td class="num">${qty}</td>
-            <td class="num">${m.totalQty}</td>
-            <td class="num">${m.avgQty.toFixed(1)}</td>
-            <td class="num">&mdash;</td>
-          </tr>
-          <tr>
-            <td>ATV</td>
-            <td class="num">${fmtR(atv)}</td>
-            <td class="num">${fmtR(m.avgATV)}</td>
-            <td class="num">${fmtR(m.avgATV)}</td>
-            <td class="num">&mdash;</td>
-          </tr>
-          <tr>
-            <td>UPT</td>
-            <td class="num">${upt.toFixed(2)}</td>
-            <td class="num">${m.avgUPT.toFixed(2)}</td>
-            <td class="num">${m.avgUPT.toFixed(2)}</td>
-            <td class="num">&mdash;</td>
-          </tr>
-          <tr>
-            <td>ASP</td>
-            <td class="num">${fmtR(asp)}</td>
-            <td class="num">${fmtR(m.avgASP)}</td>
-            <td class="num">${fmtR(m.avgASP)}</td>
-            <td class="num">&mdash;</td>
+            <td><strong>Target</strong></td>
+            <td class="num"><strong class="color-red">${fmtR(m.target)}</strong></td>
+            <td colspan="5"></td>
           </tr>
           <tr>
             <td><strong>Projected Trend</strong></td>
-            <td></td>
-            <td class="num"><strong>${fmtR(m.trend)}</strong></td>
-            <td></td>
-            <td class="num"><strong>${fmtR(m.target)}</strong></td>
+            <td class="num"><strong class="color-orange">${fmtR(m.trend)}</strong></td>
+            <td colspan="5"></td>
           </tr>
         </tbody>
       </table>
@@ -1214,8 +1337,7 @@ function buildCharts() {
 
   // Labels & data from reports
   const dayLabels = r.map(d => {
-    const dt = new Date(d.report_date + 'T00:00:00');
-    return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return fmtDD(d.report_date);
   });
   const dailySales = r.map(d => Number(d.total_sale));
   const dailyBills = r.map(d => Number(d.bills));
@@ -1480,7 +1602,7 @@ form.addEventListener('submit', async (e) => {
     closing_time: document.getElementById('fClose').value || null,
   };
 
-  const { error } = await supabase
+  const { error } = await db
     .from('daily_reports')
     .upsert(row, { onConflict: 'report_date' });
 
@@ -1504,6 +1626,11 @@ form.addEventListener('submit', async (e) => {
 /* =================================================================
    INIT
    ================================================================= */
+// Set default dates in filter
+const initRange = getMonthRange();
+document.getElementById('filterStart').value = initRange.start;
+document.getElementById('filterEnd').value = initRange.end;
+
 loadAllData();
 </script>
 
