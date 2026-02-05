@@ -4,14 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Store Daily Report — 2/4/2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     /* ── Reset & base ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:      #0f172a;
-      --surface: #1e293b;
-      --border:  #334155;
+      --bg:      #050d1a;
+      --surface: rgba(15, 23, 42, 0.6);
+      --surface-solid: #0f172a;
+      --border:  rgba(56, 189, 248, 0.08);
+      --border-hover: rgba(56, 189, 248, 0.25);
       --text:    #f1f5f9;
       --muted:   #94a3b8;
       --accent:  #38bdf8;
@@ -21,111 +26,322 @@
       --purple:  #a78bfa;
       --orange:  #fb923c;
       --pink:    #f472b6;
+      --glass:   rgba(15, 23, 42, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.06);
     }
+
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       padding: 24px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Animated mesh gradient background ─────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(244, 114, 182, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
+      animation: meshMove 20s ease-in-out infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes meshMove {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(2%, -3%) rotate(1deg); }
+      50% { transform: translate(-1%, 2%) rotate(-0.5deg); }
+      75% { transform: translate(3%, 1%) rotate(0.5deg); }
+    }
+
+    /* ── Dot pattern overlay ──────────────────────── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
     }
 
     /* ── Header ───────────────────────────────────── */
     header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 36px;
+      animation: fadeSlideDown 0.6s ease-out both;
     }
+
     header h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #f1f5f9, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    header h1 span { color: var(--accent); }
+
+    header h1 span {
+      background: linear-gradient(135deg, #38bdf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .sub-info {
       display: flex;
       justify-content: center;
       gap: 32px;
-      margin-top: 8px;
+      margin-top: 10px;
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 500;
     }
+
     .sub-info strong { color: var(--text); }
+
+    /* ── Status ribbon ────────────────────────────── */
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 28px;
+      animation: fadeSlideDown 0.6s ease-out 0.1s both;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 100px;
+      padding: 8px 18px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .status-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-pill strong { color: var(--text); font-weight: 600; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
 
     /* ── Grid layout ──────────────────────────────── */
     .grid {
       display: grid;
       gap: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
     }
-    .grid-kpi    { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-    .grid-charts { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+    .grid-kpi { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
+    .grid-charts { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
 
     /* ── KPI cards ────────────────────────────────── */
     .kpi {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 18px;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 22px 20px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .kpi:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,.35);
-    }
-    .kpi-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-    }
-    .kpi-value {
-      font-size: 1.7rem;
-      font-weight: 700;
-    }
-    .kpi-sub {
-      font-size: 0.78rem;
-      color: var(--muted);
+      gap: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
 
-    /* colour accents on the left border */
-    .kpi--sale   { border-left: 4px solid var(--accent); }
-    .kpi--bills  { border-left: 4px solid var(--green); }
-    .kpi--qty    { border-left: 4px solid var(--purple); }
-    .kpi--atv    { border-left: 4px solid var(--orange); }
-    .kpi--upt    { border-left: 4px solid var(--pink); }
-    .kpi--asp    { border-left: 4px solid var(--yellow); }
+    .kpi::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 16px 16px 0 0;
+      opacity: 0.8;
+    }
+
+    .kpi::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      filter: blur(40px);
+      pointer-events: none;
+    }
+
+    .kpi:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--border-hover);
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(56, 189, 248, 0.1);
+    }
+
+    .kpi:hover::after { opacity: 0.15; }
+
+    .kpi-icon {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+      filter: grayscale(0.2);
+    }
+
+    .kpi-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* KPI top-bar gradient accents */
+    .kpi--sale::before   { background: linear-gradient(90deg, var(--accent), #0ea5e9); }
+    .kpi--sale::after    { background: var(--accent); }
+    .kpi--bills::before  { background: linear-gradient(90deg, var(--green), #16a34a); }
+    .kpi--bills::after   { background: var(--green); }
+    .kpi--qty::before    { background: linear-gradient(90deg, var(--purple), #8b5cf6); }
+    .kpi--qty::after     { background: var(--purple); }
+    .kpi--atv::before    { background: linear-gradient(90deg, var(--orange), #ea580c); }
+    .kpi--atv::after     { background: var(--orange); }
+    .kpi--upt::before    { background: linear-gradient(90deg, var(--pink), #e11d48); }
+    .kpi--upt::after     { background: var(--pink); }
+    .kpi--asp::before    { background: linear-gradient(90deg, var(--yellow), #eab308); }
+    .kpi--asp::after     { background: var(--yellow); }
+
+    /* staggered entrance animation for KPI cards */
+    .kpi:nth-child(1) { animation: fadeSlideUp 0.5s ease-out 0.15s both; }
+    .kpi:nth-child(2) { animation: fadeSlideUp 0.5s ease-out 0.25s both; }
+    .kpi:nth-child(3) { animation: fadeSlideUp 0.5s ease-out 0.35s both; }
+    .kpi:nth-child(4) { animation: fadeSlideUp 0.5s ease-out 0.45s both; }
+    .kpi:nth-child(5) { animation: fadeSlideUp 0.5s ease-out 0.55s both; }
+    .kpi:nth-child(6) { animation: fadeSlideUp 0.5s ease-out 0.65s both; }
 
     /* ── Chart panels ─────────────────────────────── */
     .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 24px;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .panel:hover {
+      border-color: var(--border-hover);
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(56, 189, 248, 0.08);
+    }
+
+    .panel:hover::before { opacity: 0.6; }
+
     .panel h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 20px;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+
+    .panel h2::before {
+      content: '';
+      width: 4px;
+      height: 16px;
+      border-radius: 4px;
+      background: var(--accent);
+    }
+
     .chart-wrap {
       position: relative;
       width: 100%;
     }
+
     .chart-wrap canvas { width: 100% !important; }
 
-    /* ── Gauge centre text (CSS overlay) ──────────── */
+    /* staggered entrance animation for panels */
+    .panel:nth-child(1) { animation: fadeSlideUp 0.5s ease-out 0.3s both; }
+    .panel:nth-child(2) { animation: fadeSlideUp 0.5s ease-out 0.4s both; }
+    .panel:nth-child(3) { animation: fadeSlideUp 0.5s ease-out 0.5s both; }
+    .panel:nth-child(4) { animation: fadeSlideUp 0.5s ease-out 0.6s both; }
+
+    /* ── Gauge centre text ────────────────────────── */
     .gauge-container {
       position: relative;
       display: flex;
       justify-content: center;
     }
+
     .gauge-center {
       position: absolute;
       top: 54%;
@@ -133,26 +349,95 @@
       transform: translate(-50%, -50%);
       text-align: center;
     }
+
     .gauge-center .pct {
-      font-size: 2.4rem;
-      font-weight: 800;
-      color: var(--yellow);
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+
     .gauge-center .label {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--muted);
+      font-weight: 500;
     }
+
+    /* ── Footer ───────────────────────────────────── */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      animation: fadeSlideUp 0.5s ease-out 0.8s both;
+    }
+
+    footer span {
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+    }
+
+    /* ── Animations ───────────────────────────────── */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes countUp {
+      from { opacity: 0; filter: blur(4px); }
+      to   { opacity: 1; filter: blur(0); }
+    }
+
+    /* ── Scrollbar styling ────────────────────────── */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.35); }
 
     /* ── Responsive ───────────────────────────────── */
     @media (max-width: 600px) {
       body { padding: 14px; }
       .grid-kpi { grid-template-columns: repeat(2, 1fr); }
       .grid-charts { grid-template-columns: 1fr; }
-      header h1 { font-size: 1.3rem; }
+      header h1 { font-size: 1.5rem; }
+      .sub-info { gap: 16px; font-size: 0.78rem; }
+      .status-bar { flex-wrap: wrap; gap: 10px; }
+      .kpi-value { font-size: 1.4rem; }
     }
   </style>
 </head>
 <body>
+
+<div class="page-wrap">
 
 <!-- ═══════════════ HEADER ═══════════════ -->
 <header>
@@ -164,33 +449,53 @@
   </div>
 </header>
 
+<!-- ═══════════════ STATUS BAR ═══════════════ -->
+<div class="status-bar">
+  <div class="status-pill">
+    <div class="dot"></div>
+    <span>Store <strong>Open</strong></span>
+  </div>
+  <div class="status-pill">
+    <span id="liveClock"></span>
+  </div>
+  <div class="status-pill">
+    <span>Achievement: <strong style="color: var(--yellow)">11%</strong></span>
+  </div>
+</div>
+
 <!-- ═══════════════ KPI CARDS ═══════════════ -->
-<section class="grid grid-kpi" style="margin-bottom:24px">
+<section class="grid grid-kpi" style="margin-bottom:28px">
   <div class="kpi kpi--sale">
+    <div class="kpi-icon">&#128176;</div>
     <span class="kpi-label">Today's Sale</span>
-    <span class="kpi-value" style="color:var(--accent)">&#8377;38,879</span>
+    <span class="kpi-value" style="color:var(--accent)" data-target="38879" data-prefix="&#8377;">&#8377;0</span>
   </div>
   <div class="kpi kpi--bills">
+    <div class="kpi-icon">&#128196;</div>
     <span class="kpi-label">Bills</span>
-    <span class="kpi-value" style="color:var(--green)">15</span>
+    <span class="kpi-value" style="color:var(--green)" data-target="15">0</span>
   </div>
   <div class="kpi kpi--qty">
+    <div class="kpi-icon">&#128230;</div>
     <span class="kpi-label">Quantity Sold</span>
-    <span class="kpi-value" style="color:var(--purple)">57</span>
+    <span class="kpi-value" style="color:var(--purple)" data-target="57">0</span>
   </div>
   <div class="kpi kpi--atv">
+    <div class="kpi-icon">&#128178;</div>
     <span class="kpi-label">ATV</span>
-    <span class="kpi-value" style="color:var(--orange)">&#8377;2,592</span>
+    <span class="kpi-value" style="color:var(--orange)" data-target="2592" data-prefix="&#8377;">&#8377;0</span>
     <span class="kpi-sub">Avg Transaction Value</span>
   </div>
   <div class="kpi kpi--upt">
+    <div class="kpi-icon">&#128722;</div>
     <span class="kpi-label">UPT</span>
-    <span class="kpi-value" style="color:var(--pink)">3.80</span>
+    <span class="kpi-value" style="color:var(--pink)" data-target="3.80" data-decimals="2">0</span>
     <span class="kpi-sub">Units Per Transaction</span>
   </div>
   <div class="kpi kpi--asp">
+    <div class="kpi-icon">&#127991;</div>
     <span class="kpi-label">ASP</span>
-    <span class="kpi-value" style="color:var(--yellow)">&#8377;682</span>
+    <span class="kpi-value" style="color:var(--yellow)" data-target="682" data-prefix="&#8377;">&#8377;0</span>
     <span class="kpi-sub">Avg Selling Price</span>
   </div>
 </section>
@@ -238,20 +543,95 @@
 
 </section>
 
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  Powered by <span>Visual Analytics</span> &middot; Auto-generated store performance report
+</footer>
+
+</div><!-- /page-wrap -->
+
 <script>
 /* ── helpers ─────────────────────────────────── */
 const fmt = n => n.toLocaleString('en-IN');
 Chart.defaults.color = '#94a3b8';
-Chart.defaults.borderColor = '#334155';
+Chart.defaults.borderColor = 'rgba(51, 65, 85, 0.5)';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+
+/* ── Live clock ──────────────────────────────── */
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  document.getElementById('liveClock').innerHTML =
+    `<strong>${h12}:${m}:${s} ${ampm}</strong>`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ── Animated counters ───────────────────────── */
+function animateCounters() {
+  document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const decimals = parseInt(el.dataset.decimals) || 0;
+    const duration = 1200;
+    const start = performance.now();
+
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = target * eased;
+
+      if (decimals > 0) {
+        el.textContent = prefix + current.toFixed(decimals);
+      } else {
+        el.textContent = prefix + Math.round(current).toLocaleString('en-IN');
+      }
+
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  });
+}
+
+// trigger counters when KPIs are visible
+const kpiObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateCounters();
+      kpiObserver.disconnect();
+    }
+  });
+}, { threshold: 0.3 });
+
+kpiObserver.observe(document.querySelector('.grid-kpi'));
+
+/* ── Chart gradient helper ───────────────────── */
+function createGradient(ctx, c1, c2, vertical = true) {
+  const g = vertical
+    ? ctx.createLinearGradient(0, 0, 0, ctx.canvas.height)
+    : ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
+  g.addColorStop(0, c1);
+  g.addColorStop(1, c2);
+  return g;
+}
 
 /* ═══════ 1. TARGET GAUGE (doughnut 180°) ═══════ */
-new Chart(document.getElementById('gaugeChart'), {
+const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+const gaugeGrad = createGradient(gaugeCtx, '#facc15', '#fb923c', false);
+
+new Chart(gaugeCtx, {
   type: 'doughnut',
   data: {
     labels: ['Achieved', 'Remaining'],
     datasets: [{
       data: [190715, 1800000 - 190715],
-      backgroundColor: ['#facc15', '#1e293b'],
+      backgroundColor: [gaugeGrad, 'rgba(30, 41, 59, 0.5)'],
       borderWidth: 0,
       circumference: 180,
       rotation: 270,
@@ -260,9 +640,17 @@ new Chart(document.getElementById('gaugeChart'), {
   options: {
     cutout: '75%',
     responsive: true,
+    animation: { duration: 1500, easing: 'easeOutQuart' },
     plugins: {
       legend: { display: false },
       tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        borderColor: 'rgba(56, 189, 248, 0.2)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
+        titleFont: { family: "'Inter'" },
+        bodyFont: { family: "'Inter'" },
         callbacks: {
           label: ctx => `${ctx.label}: ₹${fmt(ctx.raw)}`
         }
@@ -272,34 +660,54 @@ new Chart(document.getElementById('gaugeChart'), {
 });
 
 /* ═══════ 2. SALES COMPARISON BAR ═══════════════ */
-new Chart(document.getElementById('salesBar'), {
+const salesCtx = document.getElementById('salesBar').getContext('2d');
+
+new Chart(salesCtx, {
   type: 'bar',
   data: {
     labels: ["Today's Sale", 'CY MTD Sale', 'CY MTD Avg Sale', 'Sales Trend', 'Target'],
     datasets: [{
       label: 'Amount (₹)',
       data: [38879, 190715, 47679, 1478041, 1800000],
-      backgroundColor: ['#38bdf8', '#22c55e', '#a78bfa', '#fb923c', '#ef4444'],
-      borderRadius: 6,
-      barPercentage: 0.65,
+      backgroundColor: [
+        'rgba(56, 189, 248, 0.8)',
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(167, 139, 250, 0.8)',
+        'rgba(251, 146, 60, 0.8)',
+        'rgba(239, 68, 68, 0.8)'
+      ],
+      hoverBackgroundColor: ['#38bdf8', '#22c55e', '#a78bfa', '#fb923c', '#ef4444'],
+      borderRadius: 8,
+      barPercentage: 0.6,
+      borderSkipped: false,
     }]
   },
   options: {
     indexAxis: 'y',
     responsive: true,
+    animation: { duration: 1200, easing: 'easeOutQuart' },
     plugins: {
       legend: { display: false },
       tooltip: {
-        callbacks: { label: ctx => `₹${fmt(ctx.raw)}` }
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        borderColor: 'rgba(56, 189, 248, 0.2)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
+        callbacks: { label: ctx => ` ₹${fmt(ctx.raw)}` }
       }
     },
     scales: {
       x: {
-        ticks: { callback: v => `₹${(v / 100000).toFixed(1)}L` },
-        grid: { color: '#1e293b' }
+        ticks: {
+          callback: v => `₹${(v / 100000).toFixed(1)}L`,
+          font: { size: 11, weight: 500 }
+        },
+        grid: { color: 'rgba(51, 65, 85, 0.3)' }
       },
       y: {
-        grid: { display: false }
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 500 } }
       }
     }
   }
@@ -314,59 +722,104 @@ new Chart(document.getElementById('mtdBar'), {
       {
         label: 'Achieved',
         data: [190715, 47679, 190715],
-        backgroundColor: '#22c55e',
-        borderRadius: 6,
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        hoverBackgroundColor: '#22c55e',
+        borderRadius: 8,
+        borderSkipped: false,
       },
       {
         label: 'Gap / Target',
         data: [0, 0, 1800000 - 190715],
-        backgroundColor: '#334155',
-        borderRadius: 6,
+        backgroundColor: 'rgba(51, 65, 85, 0.4)',
+        hoverBackgroundColor: 'rgba(51, 65, 85, 0.6)',
+        borderRadius: 8,
+        borderSkipped: false,
       }
     ]
   },
   options: {
     responsive: true,
+    animation: { duration: 1200, easing: 'easeOutQuart' },
     plugins: {
       tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        borderColor: 'rgba(56, 189, 248, 0.2)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
         callbacks: { label: ctx => `${ctx.dataset.label}: ₹${fmt(ctx.raw)}` }
       },
-      legend: { labels: { boxWidth: 12, padding: 14 } }
+      legend: {
+        labels: {
+          boxWidth: 12,
+          padding: 16,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          font: { size: 11, weight: 500 }
+        }
+      }
     },
     scales: {
-      x: { stacked: true, grid: { display: false } },
+      x: {
+        stacked: true,
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 500 } }
+      },
       y: {
         stacked: true,
-        ticks: { callback: v => `₹${(v / 100000).toFixed(1)}L` },
-        grid: { color: '#1e293b' }
+        ticks: {
+          callback: v => `₹${(v / 100000).toFixed(1)}L`,
+          font: { size: 11, weight: 500 }
+        },
+        grid: { color: 'rgba(51, 65, 85, 0.3)' }
       }
     }
   }
 });
 
 /* ═══════ 4. PER-TRANSACTION DOUGHNUT ═══════════ */
-new Chart(document.getElementById('txnDoughnut'), {
+const txnCtx = document.getElementById('txnDoughnut').getContext('2d');
+
+new Chart(txnCtx, {
   type: 'doughnut',
   data: {
     labels: ['ATV (₹2,592)', 'ASP (₹682)', 'UPT (3.80 units)'],
     datasets: [{
-      data: [2592, 682, 380],   /* UPT scaled ×100 for visibility */
-      backgroundColor: ['#fb923c', '#facc15', '#f472b6'],
+      data: [2592, 682, 380],
+      backgroundColor: [
+        'rgba(251, 146, 60, 0.85)',
+        'rgba(250, 204, 21, 0.85)',
+        'rgba(244, 114, 182, 0.85)'
+      ],
+      hoverBackgroundColor: ['#fb923c', '#facc15', '#f472b6'],
       borderWidth: 0,
-      hoverOffset: 12,
+      hoverOffset: 16,
+      spacing: 4,
     }]
   },
   options: {
-    cutout: '55%',
+    cutout: '60%',
     responsive: true,
+    animation: { duration: 1500, easing: 'easeOutQuart' },
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { boxWidth: 12, padding: 14 }
+        labels: {
+          boxWidth: 12,
+          padding: 16,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          font: { size: 11, weight: 500 }
+        }
       },
       tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        borderColor: 'rgba(56, 189, 248, 0.2)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
         callbacks: {
-          label: ctx => ctx.label
+          label: ctx => ' ' + ctx.label
         }
       }
     }
