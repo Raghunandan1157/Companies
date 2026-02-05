@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Daily Report — 2/4/2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Reset & base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --text:    #f1f5f9;
+      --muted:   #94a3b8;
+      --accent:  #38bdf8;
+      --green:   #22c55e;
+      --yellow:  #facc15;
+      --red:     #ef4444;
+      --purple:  #a78bfa;
+      --orange:  #fb923c;
+      --pink:    #f472b6;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Header ───────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    header h1 span { color: var(--accent); }
+    .sub-info {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .sub-info strong { color: var(--text); }
+
+    /* ── Grid layout ──────────────────────────────── */
+    .grid {
+      display: grid;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .grid-kpi    { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .grid-charts { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+    /* ── KPI cards ────────────────────────────────── */
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .kpi:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .kpi-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+    }
+    .kpi-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* colour accents on the left border */
+    .kpi--sale   { border-left: 4px solid var(--accent); }
+    .kpi--bills  { border-left: 4px solid var(--green); }
+    .kpi--qty    { border-left: 4px solid var(--purple); }
+    .kpi--atv    { border-left: 4px solid var(--orange); }
+    .kpi--upt    { border-left: 4px solid var(--pink); }
+    .kpi--asp    { border-left: 4px solid var(--yellow); }
+
+    /* ── Chart panels ─────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .panel h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .chart-wrap canvas { width: 100% !important; }
+
+    /* ── Gauge centre text (CSS overlay) ──────────── */
+    .gauge-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .gauge-center {
+      position: absolute;
+      top: 54%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .gauge-center .pct {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--yellow);
+    }
+    .gauge-center .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 600px) {
+      body { padding: 14px; }
+      .grid-kpi { grid-template-columns: repeat(2, 1fr); }
+      .grid-charts { grid-template-columns: 1fr; }
+      header h1 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+  <h1>Daily Store <span>Report</span></h1>
+  <div class="sub-info">
+    <span>Date: <strong>2 / 4 / 2026</strong></span>
+    <span>Open: <strong>9:30 AM</strong></span>
+    <span>Close: <strong>9:30 PM</strong></span>
+  </div>
+</header>
+
+<!-- ═══════════════ KPI CARDS ═══════════════ -->
+<section class="grid grid-kpi" style="margin-bottom:24px">
+  <div class="kpi kpi--sale">
+    <span class="kpi-label">Today's Sale</span>
+    <span class="kpi-value" style="color:var(--accent)">&#8377;38,879</span>
+  </div>
+  <div class="kpi kpi--bills">
+    <span class="kpi-label">Bills</span>
+    <span class="kpi-value" style="color:var(--green)">15</span>
+  </div>
+  <div class="kpi kpi--qty">
+    <span class="kpi-label">Quantity Sold</span>
+    <span class="kpi-value" style="color:var(--purple)">57</span>
+  </div>
+  <div class="kpi kpi--atv">
+    <span class="kpi-label">ATV</span>
+    <span class="kpi-value" style="color:var(--orange)">&#8377;2,592</span>
+    <span class="kpi-sub">Avg Transaction Value</span>
+  </div>
+  <div class="kpi kpi--upt">
+    <span class="kpi-label">UPT</span>
+    <span class="kpi-value" style="color:var(--pink)">3.80</span>
+    <span class="kpi-sub">Units Per Transaction</span>
+  </div>
+  <div class="kpi kpi--asp">
+    <span class="kpi-label">ASP</span>
+    <span class="kpi-value" style="color:var(--yellow)">&#8377;682</span>
+    <span class="kpi-sub">Avg Selling Price</span>
+  </div>
+</section>
+
+<!-- ═══════════════ CHARTS ═══════════════ -->
+<section class="grid grid-charts">
+
+  <!-- 1 ── Target vs Achievement gauge ────────── -->
+  <div class="panel">
+    <h2>Target vs Achievement</h2>
+    <div class="gauge-container">
+      <div class="chart-wrap" style="max-width:300px">
+        <canvas id="gaugeChart"></canvas>
+      </div>
+      <div class="gauge-center">
+        <div class="pct">11%</div>
+        <div class="label">of &#8377;18,00,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 ── Sales comparison bar ───────────────── -->
+  <div class="panel">
+    <h2>Sales Comparison</h2>
+    <div class="chart-wrap">
+      <canvas id="salesBar"></canvas>
+    </div>
+  </div>
+
+  <!-- 3 ── MTD breakdown horizontal bar ───────── -->
+  <div class="panel">
+    <h2>MTD Metrics</h2>
+    <div class="chart-wrap">
+      <canvas id="mtdBar"></canvas>
+    </div>
+  </div>
+
+  <!-- 4 ── Per-transaction breakdown (doughnut) ─ -->
+  <div class="panel">
+    <h2>Per-Transaction Breakdown</h2>
+    <div class="chart-wrap" style="max-width:320px;margin:0 auto">
+      <canvas id="txnDoughnut"></canvas>
+    </div>
+  </div>
+
+</section>
+
+<script>
+/* ── helpers ─────────────────────────────────── */
+const fmt = n => n.toLocaleString('en-IN');
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#334155';
+
+/* ═══════ 1. TARGET GAUGE (doughnut 180°) ═══════ */
+new Chart(document.getElementById('gaugeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Achieved', 'Remaining'],
+    datasets: [{
+      data: [190715, 1800000 - 190715],
+      backgroundColor: ['#facc15', '#1e293b'],
+      borderWidth: 0,
+      circumference: 180,
+      rotation: 270,
+    }]
+  },
+  options: {
+    cutout: '75%',
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.label}: ₹${fmt(ctx.raw)}`
+        }
+      }
+    }
+  }
+});
+
+/* ═══════ 2. SALES COMPARISON BAR ═══════════════ */
+new Chart(document.getElementById('salesBar'), {
+  type: 'bar',
+  data: {
+    labels: ["Today's Sale", 'CY MTD Sale', 'CY MTD Avg Sale', 'Sales Trend', 'Target'],
+    datasets: [{
+      label: 'Amount (₹)',
+      data: [38879, 190715, 47679, 1478041, 1800000],
+      backgroundColor: ['#38bdf8', '#22c55e', '#a78bfa', '#fb923c', '#ef4444'],
+      borderRadius: 6,
+      barPercentage: 0.65,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: ctx => `₹${fmt(ctx.raw)}` }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { callback: v => `₹${(v / 100000).toFixed(1)}L` },
+        grid: { color: '#1e293b' }
+      },
+      y: {
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+/* ═══════ 3. MTD METRICS BAR ════════════════════ */
+new Chart(document.getElementById('mtdBar'), {
+  type: 'bar',
+  data: {
+    labels: ['CY MTD Sale', 'CY MTD Avg Sale', 'Target'],
+    datasets: [
+      {
+        label: 'Achieved',
+        data: [190715, 47679, 190715],
+        backgroundColor: '#22c55e',
+        borderRadius: 6,
+      },
+      {
+        label: 'Gap / Target',
+        data: [0, 0, 1800000 - 190715],
+        backgroundColor: '#334155',
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      tooltip: {
+        callbacks: { label: ctx => `${ctx.dataset.label}: ₹${fmt(ctx.raw)}` }
+      },
+      legend: { labels: { boxWidth: 12, padding: 14 } }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: {
+        stacked: true,
+        ticks: { callback: v => `₹${(v / 100000).toFixed(1)}L` },
+        grid: { color: '#1e293b' }
+      }
+    }
+  }
+});
+
+/* ═══════ 4. PER-TRANSACTION DOUGHNUT ═══════════ */
+new Chart(document.getElementById('txnDoughnut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['ATV (₹2,592)', 'ASP (₹682)', 'UPT (3.80 units)'],
+    datasets: [{
+      data: [2592, 682, 380],   /* UPT scaled ×100 for visibility */
+      backgroundColor: ['#fb923c', '#facc15', '#f472b6'],
+      borderWidth: 0,
+      hoverOffset: 12,
+    }]
+  },
+  options: {
+    cutout: '55%',
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { boxWidth: 12, padding: 14 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.label
+        }
+      }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
