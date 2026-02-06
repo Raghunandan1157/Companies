@@ -784,6 +784,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
   html.dataset.theme = next;
   localStorage.setItem('theme', next);
+  invalidateThemeCache();
   updateChartsTheme();
 });
 
@@ -792,9 +793,15 @@ document.getElementById('themeToggle').addEventListener('click', () => {
    ================================================================= */
 const fmt = n => Number(n).toLocaleString('en-IN');
 const fmtR = n => '\u20B9' + fmt(Math.round(n));
+// Cache getComputedStyle results — cleared on theme toggle
+let _themeColorCache = {};
 function themeColor(prop) {
-  return getComputedStyle(html).getPropertyValue(prop).trim();
+  if (_themeColorCache[prop] !== undefined) return _themeColorCache[prop];
+  const val = getComputedStyle(html).getPropertyValue(prop).trim();
+  _themeColorCache[prop] = val;
+  return val;
 }
+function invalidateThemeCache() { _themeColorCache = {}; }
 
 function fmtDD(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -898,13 +905,16 @@ async function loadAllData(startDate, endDate) {
 /* =================================================================
    DATE FILTER LOGIC
    ================================================================= */
+// Cache date chip elements to avoid repeated DOM queries
+const dateChips = document.querySelectorAll('.date-chip[data-range]');
+
 function setActiveChip(range) {
-  document.querySelectorAll('.date-chip[data-range]').forEach(c => c.classList.remove('active'));
+  dateChips.forEach(c => c.classList.remove('active'));
   const chip = document.querySelector(`.date-chip[data-range="${range}"]`);
   if (chip) chip.classList.add('active');
 }
 
-document.querySelectorAll('.date-chip[data-range]').forEach(chip => {
+dateChips.forEach(chip => {
   chip.addEventListener('click', () => {
     const range = chip.dataset.range;
     setActiveChip(range);
@@ -940,8 +950,8 @@ document.getElementById('filterApply').addEventListener('click', () => {
     showToast('Pick both start and end dates', 'error');
     return;
   }
-  // Deactivate preset chips
-  document.querySelectorAll('.date-chip[data-range]').forEach(c => c.classList.remove('active'));
+  // Deactivate preset chips (uses cached nodeList)
+  dateChips.forEach(c => c.classList.remove('active'));
   loadAllData(start, end);
 });
 
@@ -953,9 +963,13 @@ function computeMTD() {
   const count = r.length;
   const { daysInMonth } = getMonthRange();
 
-  const totalSale = r.reduce((s, d) => s + Number(d.total_sale), 0);
-  const totalBills = r.reduce((s, d) => s + Number(d.bills), 0);
-  const totalQty = r.reduce((s, d) => s + Number(d.qty_sold), 0);
+  // Single pass instead of 3 separate reduce loops
+  let totalSale = 0, totalBills = 0, totalQty = 0;
+  for (let i = 0; i < r.length; i++) {
+    totalSale += Number(r[i].total_sale);
+    totalBills += Number(r[i].bills);
+    totalQty += Number(r[i].qty_sold);
+  }
   const target = Number(r[r.length - 1].target) || 0;
 
   const avgSale = count > 0 ? totalSale / count : 0;
@@ -972,7 +986,19 @@ function computeMTD() {
   // Trend: project total sale to end of month based on avg
   const trend = avgSale * daysInMonth;
 
-  state.today = r[r.length - 1]; // most recent report
+  const latest = r[r.length - 1]; // most recent report
+  const tSale = Number(latest.total_sale);
+  const tBills = Number(latest.bills);
+  const tQty = Number(latest.qty_sold);
+  state.today = latest;
+  state.todayCalc = {
+    sale: tSale,
+    bills: tBills,
+    qty: tQty,
+    atv: Number(latest.atv) || (tBills > 0 ? tSale / tBills : 0),
+    upt: Number(latest.upt) || (tBills > 0 ? tQty / tBills : 0),
+    asp: Number(latest.asp) || (tQty > 0 ? tSale / tQty : 0),
+  };
   state.mtd = {
     totalSale, totalBills, totalQty, target,
     avgSale, avgBills, avgQty, avgATV, avgUPT, avgASP,
@@ -1033,18 +1059,14 @@ function renderDashboard() {
   document.getElementById('footerText').textContent =
     `Auto-generated report \u00B7 ${m.count} day${m.count > 1 ? 's' : ''} of data \u00B7 ${fmtDD(new Date().toISOString().split('T')[0])}`;
 
-  const todaySale = Number(t.total_sale);
-  const todayBills = Number(t.bills);
-  const todayQty = Number(t.qty_sold);
-  const todayATV = Number(t.atv) || (todayBills > 0 ? todaySale / todayBills : 0);
-  const todayUPT = Number(t.upt) || (todayBills > 0 ? todayQty / todayBills : 0);
-  const todayASP = Number(t.asp) || (todayQty > 0 ? todaySale / todayQty : 0);
+  // Use pre-computed today metrics from computeMTD()
+  const tc = state.todayCalc;
 
   // Build all HTML sections
   let html = '';
 
   // KPI section
-  html += renderKPIs(todaySale, todayBills, todayQty, todayATV, todayUPT, todayASP, m);
+  html += renderKPIs(tc.sale, tc.bills, tc.qty, tc.atv, tc.upt, tc.asp, m);
 
   // Target section
   html += renderTargetProgress(m);
@@ -1053,7 +1075,7 @@ function renderDashboard() {
   html += renderChartsHTML();
 
   // Summary table
-  html += renderSummaryTable(todaySale, todayBills, todayQty, todayATV, todayUPT, todayASP, m);
+  html += renderSummaryTable(tc.sale, tc.bills, tc.qty, tc.atv, tc.upt, tc.asp, m);
 
   document.getElementById('dashboardContent').innerHTML = html;
 
@@ -1223,25 +1245,27 @@ function renderChartsHTML() {
    RENDER: SUMMARY TABLE
    ================================================================= */
 function renderSummaryTable(sale, bills, qty, atv, upt, asp, m) {
-  // Per-day rows with date
-  const dayRows = state.reports.map(r => {
-    const dateLabel = fmtDD(r.report_date);
+  // Build row HTML using array join (faster than repeated string concat)
+  const rowParts = [];
+  const reports = state.reports;
+  for (let i = 0; i < reports.length; i++) {
+    const r = reports[i];
     const rSale = Number(r.total_sale);
     const rBills = Number(r.bills);
     const rQty = Number(r.qty_sold);
     const rATV = Number(r.atv) || (rBills > 0 ? rSale / rBills : 0);
     const rUPT = Number(r.upt) || (rBills > 0 ? rQty / rBills : 0);
     const rASP = Number(r.asp) || (rQty > 0 ? rSale / rQty : 0);
-    return `<tr>
-      <td>${dateLabel}</td>
-      <td class="num">${fmtR(rSale)}</td>
-      <td class="num">${rBills}</td>
-      <td class="num">${rQty}</td>
-      <td class="num">${fmtR(rATV)}</td>
-      <td class="num">${rUPT.toFixed(2)}</td>
-      <td class="num">${fmtR(rASP)}</td>
-    </tr>`;
-  }).join('');
+    rowParts.push('<tr><td>', fmtDD(r.report_date),
+      '</td><td class="num">', fmtR(rSale),
+      '</td><td class="num">', rBills,
+      '</td><td class="num">', rQty,
+      '</td><td class="num">', fmtR(rATV),
+      '</td><td class="num">', rUPT.toFixed(2),
+      '</td><td class="num">', fmtR(rASP),
+      '</td></tr>');
+  }
+  const dayRows = rowParts.join('');
 
   return `
     <div class="section-title">Daily Breakdown</div>
@@ -1328,12 +1352,12 @@ function buildCharts() {
   const m = state.mtd;
   const t = state.today;
 
-  const todaySale = Number(t.total_sale);
-  const todayBills = Number(t.bills);
-  const todayQty = Number(t.qty_sold);
-  const todayATV = Number(t.atv) || (todayBills > 0 ? todaySale / todayBills : 0);
-  const todayUPT = Number(t.upt) || (todayBills > 0 ? todayQty / todayBills : 0);
-  const todayASP = Number(t.asp) || (todayQty > 0 ? todaySale / todayQty : 0);
+  // Use pre-computed today metrics
+  const tc = state.todayCalc;
+  const todaySale = tc.sale;
+  const todayATV = tc.atv;
+  const todayUPT = tc.upt;
+  const todayASP = tc.asp;
 
   // Labels & data from reports
   const dayLabels = r.map(d => {
@@ -1522,9 +1546,29 @@ function buildCharts() {
    THEME UPDATE (rebuild charts)
    ================================================================= */
 function updateChartsTheme() {
-  Object.values(charts).forEach(c => c.destroy());
-  Object.keys(charts).forEach(k => delete charts[k]);
-  requestAnimationFrame(() => requestAnimationFrame(buildCharts));
+  const o = chartOptions();
+  const textColor = o.textColor;
+  const gridColor = o.gridColor;
+  const ts = tooltipStyle();
+
+  Object.values(charts).forEach(c => {
+    // Update tooltip colors
+    if (c.options.plugins && c.options.plugins.tooltip) {
+      Object.assign(c.options.plugins.tooltip, ts);
+    }
+    // Update legend label colors
+    if (c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+      c.options.plugins.legend.labels.color = textColor;
+    }
+    // Update scale colors
+    if (c.options.scales) {
+      Object.values(c.options.scales).forEach(scale => {
+        if (scale.ticks) scale.ticks.color = scale.ticks.color && scale.ticks.color.startsWith('#') ? scale.ticks.color : textColor;
+        if (scale.grid) scale.grid.color = gridColor;
+      });
+    }
+    c.update('none'); // 'none' skips animations for instant theme switch
+  });
 }
 
 /* =================================================================
